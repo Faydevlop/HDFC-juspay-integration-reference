@@ -1,0 +1,70 @@
+{
+	"info": {
+		"_postman_id": "juspay-hdfc-test-collection",
+		"name": "Juspay HDFC SmartGateway",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"amount\": 500,\n    \"currency\": \"INR\",\n    \"customerId\": \"test_user_123\",\n    \"payment_locks\": [\"UPI\", \"NB\"],\n    \"surcharge\": { \"fixed\": 10.00 },\n    \"dcc\": true\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/api/orders",
+					"protocol": "http",
+					"host": [ "localhost" ],
+					"port": "3000",
+					"path": [ "api", "orders" ]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Order Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/api/payment/:orderId/status",
+					"protocol": "http",
+					"host": [ "localhost" ],
+					"port": "3000",
+					"path": [ "api", "payment", ":orderId", "status" ],
+					"variable": [
+						{ "key": "orderId", "value": "REPLACE_WITH_ORDER_ID" }
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Simulate Webhook",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" },
+					{ "key": "x-juspay-signature", "value": "SIMULATED_SIGNATURE" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"event_name\": \"ORDER_SUCCEEDED\",\n    \"content\": {\n        \"order\": {\n            \"order_id\": \"REPLACE_WITH_ORDER_ID\",\n            \"status\": \"CHARGED\",\n            \"amount\": 510.00\n        }\n    }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/webhook/juspay",
+					"protocol": "http",
+					"host": [ "localhost" ],
+					"port": "3000",
+					"path": [ "webhook", "juspay" ]
+				}
+			},
+			"response": []
+		}
+	]
+}

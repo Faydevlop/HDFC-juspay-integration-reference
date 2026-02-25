@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juspay HDFC SmartGateway Feature Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7f6;
+            padding: 40px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            color: #004a99;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .section {
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .section h3 {
+            margin-top: 0;
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        .feature-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: white;
+            border: 1px solid #007bff;
+            color: #007bff;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .feature-btn:hover {
+            background: #007bff;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .feature-btn span {
+            font-size: 0.8em;
+            font-weight: normal;
+            display: block;
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        #status-panel {
+            margin-top: 30px;
+            padding: 15px;
+            background: #222;
+            color: #0f0;
+            font-family: monospace;
+            border-radius: 6px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .label-feature {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Juspay Feature Dashboard</h1>
+
+        <div class="grid">
+            <!-- Payment Suite V2 -->
+            <div class="section">
+                <h3>Payment Suite V2</h3>
+                <button class="feature-btn" onclick="testFeature('standard')">
+                    Standard Payment
+                    <span>Basic order create & initiate</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('autopay')">
+                    UPI Autopay / OTM
+                    <span>Setup recurring mandate (mandate_auth: true)</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('locking')">
+                    Payment Locking
+                    <span>Block NetBanking (payment_locks: ["NB"])</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('surcharge')">
+                    Surcharge
+                    <span>Add ₹10.00 convenience fee</span>
+                </button>
+            </div>
+
+            <!-- Next Gen Experience -->
+            <div class="section">
+                <h3>Next Gen & Affordability</h3>
+                <button class="feature-btn" onclick="testFeature('native_otp')">
+                    Native OTP
+                    <span>Client-side OTP handling (native_otp: true)</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('cvv_less')">
+                    CVV-Less Payments
+                    <span>Tokenized card flow (save_to_locker: true)</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('dcc')">
+                    DCC (Currency Conv)
+                    <span>Dynamic Currency Conversion enabled</span>
+                </button>
+                <button class="feature-btn" onclick="testFeature('offers')">
+                    Offers Engine
+                    <span>Apply campaign ID (OFFER123)</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="status-panel">System Ready. Click a feature to test...</div>
+    </div>
+
+    <script>
+        const statusPanel = document.getElementById('status-panel');
+
+        async function testFeature(type) {
+            statusPanel.innerText = `Testing Feature: ${type.toUpperCase()}...\n`;
+
+            let payload = {
+                amount: 500,
+                currency: 'INR',
+                customerId: 'user_' + Math.floor(Math.random() * 1000)
+            };
+
+            switch (type) {
+                case 'autopay': payload.mandate_auth = true; break;
+                case 'locking': payload.payment_locks = ['NB']; break;
+                case 'surcharge': payload.surcharge = { fixed: 10.00 }; break;
+                case 'native_otp': payload.native_otp = true; break;
+                case 'cvv_less': payload.save_to_locker = true; break;
+                case 'dcc': payload.dcc = true; break;
+                case 'offers': payload.offer_id = 'OFFER_FESTIVE_2024'; break;
+            }
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                statusPanel.innerText += `Request Status: ${response.status}\n`;
+                statusPanel.innerText += `Juspay Order ID: ${data.id || 'N/A'}\n`;
+                statusPanel.innerText += `Payload Sent: ${JSON.stringify(payload, null, 2)}\n\n`;
+                statusPanel.innerText += `Response Data: ${JSON.stringify(data, null, 2)}`;
+
+                if (data.payment_links && data.payment_links.web) {
+                    const proceed = confirm(`Order created successfully for ${type}.\n\nJuspay ID: ${data.id}\n\nWould you like to proceed to the payment page?`);
+                    if (proceed) window.open(data.payment_links.web, '_blank');
+                }
+            } catch (err) {
+                statusPanel.innerText += `Error: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>

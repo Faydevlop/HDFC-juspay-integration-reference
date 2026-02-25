@@ -38,19 +38,25 @@ if (isCert && isKey) {
  * Generates Basic Auth header for Juspay
  * Juspay usually needs Basic Auth for most API calls.
  */
-const getAuthHeaders = () => {
+const getAuthHeaders = (routingId) => {
     // Standard Juspay/HDFC Auth: API_KEY as username, empty password
-    // Prioritize keys from .env, fallback to config.json
     const apiKey = process.env.JUSPAY_API_KEY || config.KEY_UUID;
     const merchantId = process.env.JUSPAY_MERCHANT_ID || config.MERCHANT_ID;
 
     const auth = Buffer.from(`${apiKey}:`).toString('base64');
 
-    return {
+    const headers = {
         'Authorization': `Basic ${auth}`,
-        'x-merchant-id': merchantId,
-        'Content-Type': 'application/json'
+        'x-merchantid': merchantId,
+        'Content-Type': 'application/x-www-form-urlencoded',
     };
+
+    // x-routing-id is recommended by HDFC for tracking
+    if (routingId) {
+        headers['x-routing-id'] = routingId;
+    }
+
+    return headers;
 };
 
 module.exports = {

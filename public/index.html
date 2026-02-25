@@ -158,17 +158,38 @@
             let payload = {
                 amount: 500,
                 currency: 'INR',
-                customerId: 'user_' + Math.floor(Math.random() * 1000)
+                customerId: 'user_' + Math.floor(Math.random() * 1000),
+                customer_email: 'test@example.com',
+                customer_phone: '9876543210'
             };
 
             switch (type) {
-                case 'autopay': payload.mandate_auth = true; break;
-                case 'locking': payload.payment_locks = ['NB']; break;
-                case 'surcharge': payload.surcharge = { fixed: 10.00 }; break;
-                case 'native_otp': payload.native_otp = true; break;
-                case 'cvv_less': payload.save_to_locker = true; break;
-                case 'dcc': payload.dcc = true; break;
-                case 'offers': payload.offer_id = 'OFFER_FESTIVE_2024'; break;
+                case 'autopay':
+                    payload.mandate_auth = true;
+                    payload.amount = 1.00; // Small amount for mandate setup
+                    break;
+                case 'locking':
+                    // Disable WALLET payment method (as per HDFC docs example)
+                    payload.payment_locks_disable = ['WALLET'];
+                    break;
+                case 'surcharge':
+                    payload.surcharge = {
+                        surcharge_amount: 10.00,
+                        tax_amount: 1.80 // 18% GST example
+                    };
+                    break;
+                case 'native_otp':
+                    payload.native_otp = true;
+                    break;
+                case 'cvv_less':
+                    payload.save_to_locker = true;
+                    break;
+                case 'dcc':
+                    payload.dcc = true;
+                    break;
+                case 'offers':
+                    payload.offer_id = 'ORD_OFFER_123';
+                    break;
             }
 
             try {

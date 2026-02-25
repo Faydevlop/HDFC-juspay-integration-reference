@@ -50,8 +50,10 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/juspay_te
 // Routes
 const paymentRoutes = require('./routes/payments');
 const webhookRoutes = require('./routes/webhooks');
+const surchargeRoutes = require('./routes/surcharge');
 
-app.use('/api', express.json(), paymentRoutes); // JSON parsing for API
+app.use('/api', express.json(), express.urlencoded({ extended: true }), paymentRoutes); // JSON and Form parsing for API
+app.use('/api/surcharge', express.json(), express.urlencoded({ extended: true }), surchargeRoutes); // Surcharge APIs
 app.use('/webhook', webhookRoutes);            // Raw parsing handled inside webhookRoutes
 
 // Error Handling

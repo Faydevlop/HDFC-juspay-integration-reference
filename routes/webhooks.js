@@ -26,14 +26,41 @@ router.post('/juspay', express.raw({ type: 'application/json' }), async (req, re
         const orderData = content.order;
 
         console.log(`Received Webhook Event: ${event_name} for Order: ${orderData.order_id}`);
+        console.log('FULL WEBHOOK PAYLOAD (Check for card_token here):', JSON.stringify(event, null, 2));
 
-        // 2. Update Local DB Status
+        // Specifically log card token if found in the payload
+        const cardData = orderData.card || content.card;
+        const cardToken = cardData?.card_token
+            || (cardData?.tokens && cardData.tokens.length > 0 && cardData.tokens[0].token)
+            || content.card_token
+            || null;
+
+        if (cardToken) {
+            console.log('===========================================');
+            console.log('🎉 CARD TOKEN IS HERE ->', cardToken);
+            console.log('   Card Network:', cardData?.card_brand);
+            console.log('   Last Four:', cardData?.last_four_digits);
+            console.log('   Customer:', orderData.customer_id);
+            console.log('===========================================');
+        }
+
+        // 2. Update Local DB Status (including card token if found)
+        const updateData = {
+            status: orderData.status,
+            metadata: orderData
+        };
+
+        if (cardToken) {
+            updateData.cardToken = cardToken;
+            updateData.cardNetwork = cardData?.card_brand;
+            updateData.cardLastFour = cardData?.last_four_digits;
+            updateData.cardType = cardData?.card_type;
+            updateData.savedToLocker = true;
+        }
+
         await Order.findOneAndUpdate(
             { orderId: orderData.order_id },
-            {
-                status: orderData.status,
-                metadata: orderData // Update with latest details
-            }
+            updateData
         );
 
         // 3. Respond with 200 OK

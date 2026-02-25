@@ -4,34 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juspay HDFC SmartGateway — Feature Dashboard</title>
-    <meta name="description" content="Test and manage HDFC SmartGateway payment features including UPI Autopay, Payment Locking, Surcharge, and more.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>HDFC SmartGateway — Testing Dashboard</title>
     <style>
-        :root {
-            --bg-primary: #0a0e1a;
-            --bg-card: rgba(255, 255, 255, 0.04);
-            --bg-card-hover: rgba(255, 255, 255, 0.08);
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --border-hover: rgba(99, 102, 241, 0.4);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.25);
-            --success: #22c55e;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --gradient-1: linear-gradient(135deg, #6366f1, #8b5cf6);
-            --gradient-2: linear-gradient(135deg, #3b82f6, #6366f1);
-            --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
-            --glass: rgba(255, 255, 255, 0.03);
-            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
-            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -39,601 +13,413 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 20px;
         }
 
-        /* Ambient background animation */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
-                        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%);
-            animation: ambientShift 20s ease-in-out infinite;
-            z-index: 0;
-            pointer-events: none;
+        h1 {
+            font-size: 20px;
+            margin-bottom: 4px;
         }
 
-        @keyframes ambientShift {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(-2%, 2%) rotate(1deg); }
-        }
-
-        .app {
-            position: relative;
-            z-index: 1;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 40px 24px;
-        }
-
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 48px;
-        }
-
-        .header-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 16px;
-            background: var(--glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: 100px;
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+        .subtitle {
+            color: #666;
+            font-size: 13px;
             margin-bottom: 20px;
         }
 
-        .header-badge .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 2s ease-in-out infinite;
+        .subtitle a {
+            color: #2563eb;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-            letter-spacing: -0.02em;
-        }
-
-        .header p {
-            font-size: 15px;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-
-        .header-links {
-            margin-top: 16px;
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-        }
-
-        .header-links a {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .link-primary {
-            background: var(--gradient-1);
-            color: white;
-            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-        }
-
-        .link-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
-        }
-
-        .link-secondary {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-        }
-
-        .link-secondary:hover {
-            border-color: var(--border-hover);
-            color: var(--text-primary);
-        }
-
-        /* Section Labels */
-        .section-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            margin-top: 8px;
-        }
-
-        .section-label h2 {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
+        h2 {
+            font-size: 14px;
+            color: #888;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            white-space: nowrap;
+            letter-spacing: 1px;
+            margin: 24px 0 12px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 6px;
         }
 
-        .section-label::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-subtle);
-        }
-
-        /* Feature Grid */
         .grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 10px;
         }
 
-        @media (max-width: 700px) {
-            .grid { grid-template-columns: 1fr; }
-        }
-
-        /* Feature Card */
         .card {
-            position: relative;
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 14px;
-            padding: 22px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 14px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--gradient-1);
-            opacity: 0;
-            transition: opacity 0.3s;
+            transition: border-color 0.15s;
         }
 
         .card:hover {
-            background: var(--bg-card-hover);
-            border-color: var(--border-hover);
-            box-shadow: var(--shadow-glow);
-            transform: translateY(-2px);
-        }
-
-        .card:hover::before {
-            opacity: 1;
-        }
-
-        .card:active {
-            transform: translateY(0);
-        }
-
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            margin-bottom: 14px;
-            background: var(--glass);
-            border: 1px solid var(--border-subtle);
+            border-color: #2563eb;
         }
 
         .card h3 {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-            letter-spacing: -0.01em;
+            font-size: 14px;
+            margin-bottom: 4px;
         }
 
         .card p {
-            font-size: 13px;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-bottom: 12px;
-        }
-
-        .card-tag {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            background: rgba(99, 102, 241, 0.1);
-            color: #818cf8;
-            border: 1px solid rgba(99, 102, 241, 0.15);
-        }
-
-        .card-tag.tag-warning {
-            background: rgba(245, 158, 11, 0.1);
-            color: #fbbf24;
-            border-color: rgba(245, 158, 11, 0.15);
-        }
-
-        /* Console Panel */
-        .console-wrapper {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 14px;
-            overflow: hidden;
-        }
-
-        .console-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .console-header .title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
             font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 6px;
         }
 
-        .console-header .dots {
-            display: flex;
-            gap: 6px;
+        .card code {
+            font-size: 11px;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #555;
         }
 
-        .console-header .dots span {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .console-header .dots span:nth-child(1) { background: #ef4444; }
-        .console-header .dots span:nth-child(2) { background: #f59e0b; }
-        .console-header .dots span:nth-child(3) { background: #22c55e; }
-
-        .console-actions {
+        .input-row {
             display: flex;
             gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
-        .btn-clear {
-            padding: 4px 12px;
+        .input-row label {
+            font-size: 12px;
+            color: #555;
+            min-width: 80px;
+        }
+
+        .input-row input {
+            font-size: 12px;
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        #console-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
             border-radius: 6px;
-            border: 1px solid var(--border-subtle);
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-clear:hover {
-            border-color: var(--border-hover);
-            color: var(--text-secondary);
-        }
-
-        #console {
-            padding: 20px;
-            min-height: 160px;
+            padding: 14px;
+            margin-top: 20px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 12px;
             max-height: 400px;
             overflow-y: auto;
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-            font-size: 12.5px;
-            line-height: 1.7;
-            color: var(--text-secondary);
             white-space: pre-wrap;
             word-break: break-all;
+            min-height: 100px;
         }
 
-        #console::-webkit-scrollbar {
-            width: 6px;
+        .log-info {
+            color: #569cd6;
         }
 
-        #console::-webkit-scrollbar-track {
-            background: transparent;
+        .log-ok {
+            color: #4ec9b0;
         }
 
-        #console::-webkit-scrollbar-thumb {
-            background: var(--border-subtle);
-            border-radius: 3px;
+        .log-err {
+            color: #f44747;
         }
 
-        .log-info { color: #60a5fa; }
-        .log-success { color: #4ade80; }
-        .log-error { color: #f87171; }
-        .log-dim { color: var(--text-muted); }
-        .log-highlight { color: #c084fc; }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border-subtle);
+        .log-dim {
+            color: #666;
         }
 
-        .footer p {
+        .console-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 4px;
+        }
+
+        .console-bar span {
             font-size: 12px;
-            color: var(--text-muted);
+            color: #888;
         }
 
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        /* Loading animation */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--text-muted);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-            margin-right: 6px;
+        .console-bar button {
+            font-size: 11px;
+            padding: 3px 10px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body>
-    <div class="app">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-badge">
-                <span class="dot"></span>
-                Sandbox Environment — SG4547
-            </div>
-            <h1>SmartGateway Feature Dashboard</h1>
-            <p>Test all 8 HDFC SmartGateway features. Each card creates a real order via the Juspay API and returns a payment page link.</p>
-            <div class="header-links">
-                <a href="/docs.html" class="link-primary" target="_blank">📄 API Docs</a>
-                <a href="https://dashboard.smartgateway.hdfcuat.bank.in" class="link-secondary" target="_blank">🏦 HDFC Dashboard</a>
-            </div>
-        </header>
+    <h1>HDFC SmartGateway Testing</h1>
+    <p class="subtitle">Sandbox SG4547 · <a href="/docs.html" target="_blank">API Docs ↗</a></p>
 
-        <!-- Core Features -->
-        <div class="section-label"><h2>Core Payment Features</h2></div>
-        <div class="grid">
-            <div class="card" onclick="testFeature('standard')">
-                <div class="card-icon">💳</div>
-                <h3>Standard Payment</h3>
-                <p>Create a basic order and redirect to the hosted payment page. Supports Cards, UPI, NetBanking, and Wallets.</p>
-                <span class="card-tag">POST /api/orders</span>
-            </div>
-            <div class="card" onclick="testFeature('payment_link')">
-                <div class="card-icon">🔗</div>
-                <h3>Payment Link</h3>
-                <p>Generate a shareable payment URL with a 30-minute expiry. Send via SMS, email or WhatsApp.</p>
-                <span class="card-tag">expiryInMins: 30</span>
-            </div>
-            <div class="card" onclick="testFeature('locking')">
-                <div class="card-icon">🔒</div>
-                <h3>Payment Locking</h3>
-                <p>Control which payment methods are visible. This example hides the WALLET method from the payment page.</p>
-                <span class="card-tag">payment_filter</span>
-                <span class="card-tag tag-warning">Dashboard Required</span>
-            </div>
-            <div class="card" onclick="testFeature('surcharge')">
-                <div class="card-icon">💰</div>
-                <h3>Surcharge</h3>
-                <p>Add a ₹10.00 convenience fee + ₹1.80 GST (18%) on top of the order. Total: ₹511.80.</p>
-                <span class="card-tag">surcharge_amount</span>
-                <span class="card-tag tag-warning">Dashboard Required</span>
-            </div>
+    <!-- Standard Payment -->
+    <h2>Standard Payment</h2>
+    <div class="grid">
+        <div class="card" onclick="createOrder()">
+            <h3>Create Order</h3>
+            <p>Create a ₹500 order and get payment page link</p>
+            <code>POST /api/orders</code>
         </div>
-
-        <!-- Advanced Features -->
-        <div class="section-label"><h2>Advanced Features</h2></div>
-        <div class="grid">
-            <div class="card" onclick="testFeature('autopay')">
-                <div class="card-icon">🔄</div>
-                <h3>UPI Autopay</h3>
-                <p>Set up a recurring UPI mandate. Customer authorizes via their UPI app. Auto-debit happens on schedule.</p>
-                <span class="card-tag">mandate_auth: true</span>
-                <span class="card-tag tag-warning">PA/PG Required</span>
+        <div class="card">
+            <h3>Get Order Status</h3>
+            <p>Check status of an order</p>
+            <div class="input-row">
+                <label>Order ID:</label>
+                <input id="status-order-id" placeholder="order_..." />
             </div>
-            <div class="card" onclick="testFeature('otm')">
-                <div class="card-icon">🎯</div>
-                <h3>One-Time Mandate (OTM)</h3>
-                <p>Block ₹500 upfront in the customer's account. Execute the debit once using the Execution API.</p>
-                <span class="card-tag">otm: true</span>
-                <span class="card-tag tag-warning">PA/PG Required</span>
+            <div style="text-align:right"><button onclick="getOrderStatus()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Check</button>
             </div>
-            <div class="card" onclick="testFeature('native_otp')">
-                <div class="card-icon">🔐</div>
-                <h3>Native OTP</h3>
-                <p>Show OTP input directly on the payment page instead of redirecting to the bank's page. Faster checkout.</p>
-                <span class="card-tag">native_otp: true</span>
-                <span class="card-tag tag-warning">PA/PG Required</span>
-            </div>
-            <div class="card" onclick="testFeature('cvv_less')">
-                <div class="card-icon">🪪</div>
-                <h3>CVV-Less Payments</h3>
-                <p>Tokenize the customer's card for future use. Subsequent payments skip the CVV box automatically.</p>
-                <span class="card-tag">save_to_locker: true</span>
-                <span class="card-tag tag-warning">KAM Required</span>
-            </div>
+            <code>GET /api/payment/{orderId}/status</code>
         </div>
+    </div>
 
-        <!-- Console Output -->
-        <div class="console-wrapper">
-            <div class="console-header">
-                <div class="title">
-                    <span>⬤</span> Console Output
-                </div>
-                <div class="console-actions">
-                    <button class="btn-clear" onclick="clearConsole()">Clear</button>
-                </div>
-                <div class="dots">
-                    <span></span><span></span><span></span>
-                </div>
-            </div>
-            <div id="console">
-<span class="log-dim">[system]</span> <span class="log-info">Dashboard ready. Click any feature card to test.</span>
-<span class="log-dim">[system]</span> <span class="log-dim">API docs available at <a href="/docs.html" style="color: #818cf8;">/docs.html</a></span>
-</div>
+    <!-- Mandates -->
+    <h2>Mandates — Registration</h2>
+    <div class="grid">
+        <div class="card" onclick="createMandateOrder()">
+            <h3>Create Order (Mandate)</h3>
+            <p>Create mandate order — Monthly SIP, ₹5,000 max, auth ₹1</p>
+            <code>POST /api/mandates/create-order</code>
         </div>
+        <div class="card">
+            <h3>Register Mandate (UPI)</h3>
+            <p>Submit UPI VPA for mandate authorization</p>
+            <div class="input-row">
+                <label>Order ID:</label>
+                <input id="reg-order-id" placeholder="mandate_..." />
+            </div>
+            <div class="input-row">
+                <label>UPI VPA:</label>
+                <input id="reg-vpa" value="customer@upi" />
+            </div>
+            <div style="text-align:right"><button onclick="registerMandate()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Register</button>
+            </div>
+            <code>POST /api/mandates/register</code>
+        </div>
+        <div class="card">
+            <h3>Get Mandate Order Status</h3>
+            <p>Check status of mandate registration order</p>
+            <div class="input-row">
+                <label>Order ID:</label>
+                <input id="mdt-order-id" placeholder="mandate_..." />
+            </div>
+            <div style="text-align:right"><button onclick="getMandateOrderStatus()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Check</button>
+            </div>
+            <code>GET /api/mandates/order-status/{orderId}</code>
+        </div>
+    </div>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Merchant SG4547 · Sandbox UAT · <a href="/docs.html">API Documentation ↗</a></p>
-        </footer>
+    <h2>Mandates — Lifecycle</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>List Mandates</h3>
+            <p>List all mandates for a customer</p>
+            <div class="input-row">
+                <label>Customer ID:</label>
+                <input id="list-cust-id" value="cust_010" />
+            </div>
+            <div style="text-align:right"><button onclick="listMandates()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">List</button>
+            </div>
+            <code>GET /api/mandates/list</code>
+        </div>
+        <div class="card">
+            <h3>Mandate Status Check</h3>
+            <p>Check current status of a specific mandate</p>
+            <div class="input-row">
+                <label>Mandate ID:</label>
+                <input id="status-mandate-id" placeholder="mdt_..." />
+            </div>
+            <div style="text-align:right"><button onclick="mandateStatus()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Check</button>
+            </div>
+            <code>POST /api/mandates/{id}/status</code>
+        </div>
+        <div class="card">
+            <h3>Pre-Debit Notification</h3>
+            <p>Send pre-debit notify (24h before debit)</p>
+            <div class="input-row">
+                <label>Mandate ID:</label>
+                <input id="notify-mandate-id" placeholder="mdt_..." />
+            </div>
+            <div class="input-row">
+                <label>Amount:</label>
+                <input id="notify-amount" value="5000" />
+            </div>
+            <div class="input-row">
+                <label>Exec Date:</label>
+                <input id="notify-date" value="2026-03-01" />
+            </div>
+            <div style="text-align:right"><button onclick="preDebitNotify()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Notify</button>
+            </div>
+            <code>POST /api/mandates/{id}/notify</code>
+        </div>
+        <div class="card">
+            <h3>Execute Mandate (Auto-Debit)</h3>
+            <p>Trigger auto-debit against active mandate</p>
+            <div class="input-row">
+                <label>Mandate ID:</label>
+                <input id="exec-mandate-id" placeholder="mdt_..." />
+            </div>
+            <div class="input-row">
+                <label>Amount:</label>
+                <input id="exec-amount" value="5000" />
+            </div>
+            <div class="input-row">
+                <label>Notif ID:</label>
+                <input id="exec-notif-id" placeholder="notif_..." />
+            </div>
+            <div style="text-align:right"><button onclick="executeMandate()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Execute</button>
+            </div>
+            <code>POST /api/mandates/{id}/execute</code>
+        </div>
+        <div class="card">
+            <h3>Revoke Mandate</h3>
+            <p>Cancel an active mandate permanently</p>
+            <div class="input-row">
+                <label>Mandate ID:</label>
+                <input id="revoke-mandate-id" placeholder="mdt_..." />
+            </div>
+            <div style="text-align:right"><button onclick="revokeMandate()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Revoke</button>
+            </div>
+            <code>POST /api/mandates/{id}/revoke</code>
+        </div>
+    </div>
+
+    <!-- Console -->
+    <div class="console-bar">
+        <span>Console Output</span>
+        <button onclick="document.getElementById('console-box').innerHTML=''">Clear</button>
+    </div>
+    <div id="console-box"><span class="log-dim">[ready]</span> <span class="log-info">Click any card to test. API docs
+            at /docs.html</span>
     </div>
 
     <script>
-        const con = document.getElementById('console');
-
+        const con = document.getElementById('console-box');
         function log(msg, cls = '') {
-            const line = document.createElement('div');
-            line.innerHTML = msg;
-            if (cls) line.className = cls;
-            con.appendChild(line);
+            const d = document.createElement('div');
+            d.innerHTML = msg;
+            if (cls) d.className = cls;
+            con.appendChild(d);
             con.scrollTop = con.scrollHeight;
         }
+        function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
 
-        function clearConsole() {
-            con.innerHTML = '<span class="log-dim">[system]</span> <span class="log-info">Console cleared.</span>\n';
-        }
-
-        function timestamp() {
-            return new Date().toLocaleTimeString('en-US', { hour12: false });
-        }
-
-        async function testFeature(type) {
-            const labels = {
-                standard: 'Standard Payment',
-                payment_link: 'Payment Link (30-min)',
-                locking: 'Payment Locking',
-                surcharge: 'Surcharge + GST',
-                autopay: 'UPI Autopay',
-                otm: 'One-Time Mandate',
-                native_otp: 'Native OTP',
-                cvv_less: 'CVV-Less (Save Card)'
-            };
-
-            log(`\n<span class="log-dim">[${timestamp()}]</span> <span class="log-highlight">▸ Testing: ${labels[type] || type}</span>`);
-            log(`<span class="log-dim">[${timestamp()}]</span> <span class="spinner"></span>Creating order...`);
-
-            let payload = {
-                amount: 500,
-                currency: 'INR',
-                customerId: 'cust_' + Math.floor(Math.random() * 10000),
-                customer_email: 'test@example.com',
-                customer_phone: '9876543210'
-            };
-
-            switch (type) {
-                case 'payment_link':
-                    payload.expiryInMins = 30;
-                    break;
-                case 'autopay':
-                    payload.mandate_auth = true;
-                    payload.amount = 1.00;
-                    break;
-                case 'otm':
-                    payload.mandate_auth = true;
-                    payload.otm = true;
-                    break;
-                case 'locking':
-                    payload.payment_locks_disable = ['WALLET'];
-                    break;
-                case 'surcharge':
-                    payload.surcharge = { surcharge_amount: 10.00, tax_amount: 1.80 };
-                    break;
-                case 'native_otp':
-                    payload.native_otp = true;
-                    break;
-                case 'cvv_less':
-                    payload.save_to_locker = true;
-                    break;
-            }
-
-            log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-dim">Payload: ${JSON.stringify(payload, null, 2)}</span>`);
-
+        async function api(method, url, body) {
+            log(`<span class="log-dim">[${ts()}]</span> <span class="log-info">${method} ${url}</span>`);
+            if (body) log(`<span class="log-dim">  → ${JSON.stringify(body)}</span>`);
             try {
-                const res = await fetch('/api/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                const opts = { method, headers: { 'Content-Type': 'application/json' } };
+                if (body) opts.body = JSON.stringify(body);
+                const res = await fetch(url, opts);
                 const data = await res.json();
-
-                // Remove spinner
-                const spinners = con.querySelectorAll('.spinner');
-                spinners.forEach(s => {
-                    const parent = s.parentElement;
-                    if (parent) parent.innerHTML = parent.innerHTML.replace(/<span class="spinner"><\/span>/, '');
-                });
-
                 if (res.ok) {
-                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-success">✓ Order created — Status: ${data.status} (${res.status})</span>`);
-                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-info">  Juspay ID: ${data.id || 'N/A'}</span>`);
-                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-info">  Order ID:  ${data.order_id || 'N/A'}</span>`);
-
-                    if (data.payment_links && data.payment_links.web) {
-                        log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-success">  Payment Link: <a href="${data.payment_links.web}" target="_blank" style="color: #4ade80; text-decoration: underline;">${data.payment_links.web}</a></span>`);
-
-                        const open = confirm(`✅ Order created for "${labels[type]}".\n\nJuspay ID: ${data.id}\n\nOpen payment page?`);
-                        if (open) window.open(data.payment_links.web, '_blank');
-                    }
+                    log(`<span class="log-dim">[${ts()}]</span> <span class="log-ok">✓ ${res.status} OK</span>`);
                 } else {
-                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-error">✗ Error ${res.status}: ${JSON.stringify(data)}</span>`);
+                    log(`<span class="log-dim">[${ts()}]</span> <span class="log-err">✗ ${res.status} Error</span>`);
                 }
+                log(`<span class="log-dim">${JSON.stringify(data, null, 2)}</span>`);
+                return data;
+            } catch (e) {
+                log(`<span class="log-dim">[${ts()}]</span> <span class="log-err">✗ ${e.message}</span>`);
+            }
+        }
 
-                log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-dim">Full response: ${JSON.stringify(data, null, 2)}</span>`);
-            } catch (err) {
-                log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-error">✗ Network error: ${err.message}</span>`);
+        async function createOrder() {
+            const data = await api('POST', '/api/orders', {
+                amount: 500, currency: 'INR', customerId: 'cust_001',
+                customer_email: 'test@example.com', customer_phone: '9876543210'
+            });
+            if (data?.payment_links?.web) {
+                if (confirm('Order created! Open payment page?')) window.open(data.payment_links.web, '_blank');
+            }
+        }
+
+        function getOrderStatus() {
+            const id = document.getElementById('status-order-id').value;
+            if (!id) return alert('Enter an Order ID');
+            api('GET', `/api/payment/${id}/status`);
+        }
+
+        async function createMandateOrder() {
+            const data = await api('POST', '/api/mandates/create-order', {
+                amount: '1.00', customer_id: 'cust_010',
+                customer_email: 'subscriber@example.com', customer_phone: '9876543210',
+                max_amount: '5000.00', frequency: 'MONTHLY',
+                start_date: '2026-03-01', end_date: '2027-03-01',
+                description: 'Monthly SIP Investment'
+            });
+            if (data?.payment_links?.web) {
+                if (confirm('Mandate order created! Open payment page for authorization?')) window.open(data.payment_links.web, '_blank');
+            }
+        }
+
+        function registerMandate() {
+            const order_id = document.getElementById('reg-order-id').value;
+            const upi_vpa = document.getElementById('reg-vpa').value;
+            if (!order_id) return alert('Enter a mandate Order ID');
+            api('POST', '/api/mandates/register', { order_id, payment_method_type: 'UPI', upi_vpa });
+        }
+
+        function getMandateOrderStatus() {
+            const id = document.getElementById('mdt-order-id').value;
+            if (!id) return alert('Enter a mandate Order ID');
+            api('GET', `/api/mandates/order-status/${id}`);
+        }
+
+        function listMandates() {
+            const cid = document.getElementById('list-cust-id').value;
+            if (!cid) return alert('Enter a Customer ID');
+            api('GET', `/api/mandates/list?customer_id=${cid}`);
+        }
+
+        function mandateStatus() {
+            const id = document.getElementById('status-mandate-id').value;
+            if (!id) return alert('Enter a Mandate ID');
+            api('POST', `/api/mandates/${id}/status`);
+        }
+
+        function preDebitNotify() {
+            const id = document.getElementById('notify-mandate-id').value;
+            const amount = parseFloat(document.getElementById('notify-amount').value);
+            const execution_date = document.getElementById('notify-date').value;
+            if (!id) return alert('Enter a Mandate ID');
+            api('POST', `/api/mandates/${id}/notify`, { amount, execution_date });
+        }
+
+        function executeMandate() {
+            const id = document.getElementById('exec-mandate-id').value;
+            const amount = parseFloat(document.getElementById('exec-amount').value);
+            const notification_id = document.getElementById('exec-notif-id').value;
+            if (!id) return alert('Enter a Mandate ID');
+            const body = { amount, order_id: `exec_${Date.now()}`, customer_id: 'cust_010' };
+            if (notification_id) body.notification_id = notification_id;
+            api('POST', `/api/mandates/${id}/execute`, body);
+        }
+
+        function revokeMandate() {
+            const id = document.getElementById('revoke-mandate-id').value;
+            if (!id) return alert('Enter a Mandate ID');
+            if (confirm('Revoke this mandate? This cannot be undone.')) {
+                api('POST', `/api/mandates/${id}/revoke`);
             }
         }
     </script>

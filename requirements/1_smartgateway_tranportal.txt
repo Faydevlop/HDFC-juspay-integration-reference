@@ -1,0 +1,67 @@
+SMARTGATEWAY TRANPORTAL INTEGRATION - DASHBOARD REQUIREMENTS
+=============================================================
+Doc: https://docs.hdfcbank.juspay.in/docs/smartgateway-tranportal-integration
+
+WHAT IT IS:
+-----------
+TranPortal (Seamless) integration means the merchant hosts their own payment
+page and collects card/UPI details directly. The payment data is then sent
+to HDFC SmartGateway APIs for processing. This gives full control over UI.
+
+PREREQUISITES:
+--------------
+1. PCI-DSS Compliance Certificate (MANDATORY for TranPortal)
+   - Since merchant collects card data on their own page, PCI-DSS is required
+   - Without this, use the Hosted (Non-Seamless / Payment Page) integration instead
+
+2. Merchant ID & Client ID
+   - Provided by HDFC bank team
+   - Client ID is typically same as Merchant ID
+   - Currently using: SG4547
+
+3. API Key
+   - Generated from: Dashboard > Payments > Settings > Security > API Keys
+   - Click "Create New API Key"
+   - Store securely in .env file (never commit to Git)
+
+4. Return URL Configuration
+   - Set in: Dashboard > Payments > General Settings > Payment Return URL
+   - Or pass in each API call payload
+
+DASHBOARD CONFIGURATION STEPS:
+-------------------------------
+1. Login to SmartGateway Dashboard
+   - Sandbox: https://dashboard.smartgateway.hdfcuat.bank.in
+   - Production: https://dashboard.smartgateway.hdfc.bank.in
+
+2. Generate API Key:
+   Dashboard > Payments > Settings > Security > API Keys > Create New API Key
+
+3. Set Return URL:
+   Dashboard > Payments > General Settings > Payment Return URL > Update
+
+4. Configure Webhooks:
+   Dashboard > Payments > Settings > Webhooks
+   Enable events: ORDER_CREATED, TXN_CREATED, TXN_FAILED, ORDER_FAILED
+
+5. Verify Payment Methods:
+   Dashboard > Payments > PG Control Centre
+   Check which payment methods (Cards, UPI, NetBanking, Wallets) are enabled
+
+MANDATE FLOW (within TranPortal):
+----------------------------------
+For mandate (recurring payment) support within TranPortal, also see:
+- 3_upi_autopay.txt for UPI mandate setup
+- 5_otm.txt for One-Time Mandate setup
+
+API ENDPOINTS:
+--------------
+Sandbox:    https://smartgateway.hdfcuat.bank.in
+Production: https://smartgateway.hdfc.bank.in
+
+MANDATORY HEADERS:
+------------------
+- Authorization: Basic <Base64(API_KEY:)>
+- x-merchantid: <Merchant ID>
+- Content-Type: application/x-www-form-urlencoded
+- x-routing-id: <customer_id or session_id>

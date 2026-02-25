@@ -1,0 +1,1474 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Juspay HDFC SmartGateway API",
+        "description": "Complete API documentation for the Juspay HDFC SmartGateway integration covering all 8 features.\n\n## Features Covered\n| # | Feature | Key APIs |\n|---|---------|----------|\n| 1 | **SmartGateway TranPortal** | Create Order, Initiate Payment, Order Status, Refund |\n| 2 | **Payment Links** | Create Order with `expiryInMins` |\n| 3 | **UPI Autopay** | Create Mandate, Execute, Revoke, Status, Pre-Debit Notify |\n| 4 | **Payment Locking** | Create Order with `payment_filter` |\n| 5 | **OTM (One-Time Mandate)** | Create Order with `otm`, Mandate Execute |\n| 6 | **Surcharge** | Create Order with `surcharge_amount` + `tax_amount` |\n| 7 | **Native OTP** | Create Order with `native_otp`, Initiate Payment |\n| 8 | **CVV-less Payments** | Create Order with `save_to_locker`, List Cards, Card BIN, Delete Card |\n\n## Authentication\nAll API calls use **Basic HTTP Authentication**:\n```\nAuthorization: Basic <Base64(API_KEY:)>\n```\n\n## Environments\n| Environment | Base URL |\n|---|---|\n| Sandbox (UAT) | `https://smartgateway.hdfcuat.bank.in` |\n| Production | `https://smartgateway.hdfc.bank.in` |\n\n## Content Type\nAll requests to HDFC SmartGateway are sent as `application/x-www-form-urlencoded`. The local proxy server accepts `application/json` and converts internally.",
+        "version": "2.0.0",
+        "contact": {
+            "name": "Exelon Development Team"
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000",
+            "description": "Local Development Server"
+        }
+    ],
+    "tags": [
+        {
+            "name": "Orders",
+            "description": "Order creation, status check, and payment page redirect"
+        },
+        {
+            "name": "Payments",
+            "description": "Payment initiation (TranPortal / seamless flow)"
+        },
+        {
+            "name": "Refunds",
+            "description": "Full and partial refunds for charged orders"
+        },
+        {
+            "name": "Cards",
+            "description": "Saved card management — list, BIN lookup, delete (CVV-less feature)"
+        },
+        {
+            "name": "Mandates",
+            "description": "UPI Autopay & OTM mandate lifecycle — create, execute, revoke, status, notify"
+        },
+        {
+            "name": "Webhooks",
+            "description": "Juspay webhook event processing with RSA signature verification"
+        }
+    ],
+    "paths": {
+        "/api/orders": {
+            "post": {
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Create Order",
+                "description": "Creates a new payment order in the local MongoDB database and on HDFC SmartGateway.\n\nThe response includes a `payment_links.web` URL where the customer completes payment.\n\n### Feature Flags\nEnable advanced features by adding fields to the request:\n\n| Feature | Field(s) | Prerequisite |\n|---------|----------|--------------|\n| Payment Link | `expiryInMins` | None |\n| Payment Locking | `payment_locks` or `payment_locks_disable` | Dashboard: Hypercheckout onboarding |\n| Surcharge | `surcharge.surcharge_amount`, `surcharge.tax_amount` | Dashboard: PG Control Center → Surcharge |\n| UPI Autopay | `mandate_auth: true` | PA/PG enablement + Dashboard config |\n| OTM | `mandate_auth: true`, `otm: true` | Same as UPI Autopay |\n| Native OTP | `native_otp: true` | PA/PG + Dashboard Marketplace |\n| CVV-less | `save_to_locker: true` | PA/PG KAM activation |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateOrderRequest"
+                            },
+                            "examples": {
+                                "1_standard": {
+                                    "summary": "① Standard Payment — ₹500",
+                                    "description": "Basic order creation. Creates an order and returns a payment page link supporting Cards, UPI, NetBanking, and Wallets.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_001",
+                                        "customer_email": "customer@example.com",
+                                        "customer_phone": "9876543210"
+                                    }
+                                },
+                                "2_payment_link": {
+                                    "summary": "② Payment Link — 30-min expiry",
+                                    "description": "Creates a shareable payment link that expires in 30 minutes. Send via SMS, email, or WhatsApp. After expiry, the link returns a 'link expired' page.",
+                                    "value": {
+                                        "amount": 1200,
+                                        "currency": "INR",
+                                        "customerId": "cust_002",
+                                        "customer_email": "buyer@example.com",
+                                        "customer_phone": "9123456789",
+                                        "expiryInMins": 30
+                                    }
+                                },
+                                "3_locking_disable_wallet": {
+                                    "summary": "③ Payment Locking — Hide Wallets",
+                                    "description": "Hides the Wallet payment method on the payment page. All other methods (Card, UPI, NB) remain visible.\n\nInternal translation: `payment_filter = { allowDefaultOptions: true, options: [{ paymentMethodType: 'WALLET', enable: false }] }`\n\n> ⚠️ Requires Hypercheckout onboarding on merchant account.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_003",
+                                        "customer_email": "test@example.com",
+                                        "customer_phone": "9876543210",
+                                        "payment_locks_disable": [
+                                            "WALLET"
+                                        ]
+                                    }
+                                },
+                                "4_locking_enable_upi_only": {
+                                    "summary": "③ Payment Locking — Show Only UPI",
+                                    "description": "Shows ONLY UPI on the payment page. Card, NetBanking, and Wallet are all hidden.\n\nInternal translation: `payment_filter = { allowDefaultOptions: false, options: [{ paymentMethodType: 'UPI', enable: true }] }`\n\nSupported values: `CARD`, `UPI`, `NB`, `WALLET`, `EMI`",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_004",
+                                        "customer_email": "test@example.com",
+                                        "customer_phone": "9876543210",
+                                        "payment_locks": [
+                                            "UPI"
+                                        ]
+                                    }
+                                },
+                                "5_surcharge": {
+                                    "summary": "④ Surcharge — ₹10 + 18% GST",
+                                    "description": "Adds a convenience fee on top of the order amount.\n\nPayment page breakdown:\n- Order: ₹500.00\n- Surcharge: ₹10.00\n- Tax (GST): ₹1.80\n- **Total: ₹511.80**\n\n> ⚠️ Requires surcharge rules in Dashboard → PG Control Center → Surcharge tab. Without rules, these fields are silently ignored.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_005",
+                                        "customer_email": "billing@example.com",
+                                        "customer_phone": "9876543210",
+                                        "surcharge": {
+                                            "surcharge_amount": 10.00,
+                                            "tax_amount": 1.80
+                                        }
+                                    }
+                                },
+                                "6_upi_autopay": {
+                                    "summary": "⑤ UPI Autopay — Recurring Mandate",
+                                    "description": "Creates a UPI recurring mandate. Customer authorizes via UPI app (Google Pay, PhonePe, etc.).\n\nAfter authorization:\n1. `MANDATE_CREATED` webhook fires\n2. Use **Mandate Execute** API for each recurring debit\n3. Send **Pre-Debit Notification** 24h before each debit\n\n> ⚠️ Requires PA/PG partner to enable UPI Autopay + Dashboard PG Control Centre → Enable UPI Collect/Intent under Mandates.",
+                                    "value": {
+                                        "amount": 1.00,
+                                        "currency": "INR",
+                                        "customerId": "cust_006",
+                                        "customer_email": "subscriber@example.com",
+                                        "customer_phone": "9876543210",
+                                        "mandate_auth": true
+                                    }
+                                },
+                                "7_otm": {
+                                    "summary": "⑥ OTM — Block ₹500 (One-Time Mandate)",
+                                    "description": "Blocks ₹500 in the customer's account upfront. Funds can be executed (debited) only once via the **Mandate Execute** API.\n\nFlow:\n1. Customer authorizes via UPI app → funds are blocked\n2. Merchant calls Execute API when ready to debit\n3. If not executed within validity period, funds auto-release\n4. Partial debit is supported\n\n> ⚠️ Same prerequisites as UPI Autopay.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_007",
+                                        "customer_email": "booking@example.com",
+                                        "customer_phone": "9876543210",
+                                        "mandate_auth": true,
+                                        "otm": true
+                                    }
+                                },
+                                "8_native_otp": {
+                                    "summary": "⑦ Native OTP — In-page OTP",
+                                    "description": "Eliminates redirect to bank's OTP page during card payments. OTP input is shown directly on the SmartGateway payment page.\n\nBenefits: Faster checkout, fewer drop-offs, no slow bank page.\n\nAvailability: Only for supported card BINs (Visa, Mastercard — not all banks).\n\n> ⚠️ Requires PA/PG enablement + Dashboard Marketplace tab → Enable Native OTP.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_008",
+                                        "customer_email": "shopper@example.com",
+                                        "customer_phone": "9876543210",
+                                        "native_otp": true
+                                    }
+                                },
+                                "9_cvvless": {
+                                    "summary": "⑧ CVV-less — Save Card (Tokenize)",
+                                    "description": "Tokenizes the customer's card (saves to Juspay locker). On subsequent payments with the same saved card, the CVV input is automatically removed.\n\nAfter this transaction:\n- Use **List Cards** API to retrieve saved card tokens\n- Use **Card BIN** API to check eligibility\n- Use **Delete Card** API to remove a saved card\n\nSupported networks: Visa ✅, Mastercard ✅, RuPay (limited), Amex (limited).\n\n> ⚠️ Requires PA/PG Key Account Manager (KAM) to activate CVV-less + gateway support.",
+                                    "value": {
+                                        "amount": 500,
+                                        "currency": "INR",
+                                        "customerId": "cust_009",
+                                        "customer_email": "returning@example.com",
+                                        "customer_phone": "9876543210",
+                                        "save_to_locker": true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Order created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreateOrderResponse"
+                                },
+                                "example": {
+                                    "status": "CREATED",
+                                    "status_id": 1,
+                                    "id": "ordeh_abc123def456",
+                                    "order_id": "order_1772000476555",
+                                    "payment_links": {
+                                        "web": "https://smartgateway.hdfcuat.bank.in/payment-page/order/ordeh_abc123def456",
+                                        "mobile": "https://smartgateway.hdfcuat.bank.in/payment-page/order/ordeh_abc123def456",
+                                        "iframe": "https://smartgateway.hdfcuat.bank.in/payment-page/order/ordeh_abc123def456"
+                                    },
+                                    "order_expiry": "2026-02-25T07:00:00Z"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request — Missing or invalid fields"
+                    },
+                    "401": {
+                        "description": "Unauthorized — Invalid API Key or Merchant ID"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/payments/{orderId}/initiate": {
+            "post": {
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Initiate Payment (TranPortal)",
+                "description": "Initiates a payment transaction for an existing order. Used in **TranPortal (seamless) integration** where the merchant collects payment details on their own page.\n\n### Flow\n1. Merchant creates order via **Create Order** API\n2. Merchant collects card/UPI details on their page\n3. Sends details to this endpoint\n4. Response may contain a 3DS/OTP redirect URL\n\n> **Note**: For the **hosted payment page** flow, this is NOT needed — customers enter details on the Juspay-hosted page.\n\n> ⚠️ PCI-DSS compliance is required for card payments via TranPortal.",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order ID from Create Order API",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "order_1772000476555"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/InitiatePaymentRequest"
+                            },
+                            "examples": {
+                                "card_payment": {
+                                    "summary": "Card Payment (Visa Test Card)",
+                                    "description": "Initiates a card payment using a test Visa card. The response will typically return `PENDING_VBV` status with a 3DS authentication URL.\n\n> ⚠️ Requires PCI-DSS compliance.",
+                                    "value": {
+                                        "payment_method": "CARD",
+                                        "card_details": {
+                                            "card_number": "4111111111111111",
+                                            "card_exp_month": "12",
+                                            "card_exp_year": "2029",
+                                            "name_on_card": "Test User",
+                                            "card_security_code": "123"
+                                        }
+                                    }
+                                },
+                                "upi_collect": {
+                                    "summary": "UPI Collect Request",
+                                    "description": "Sends a UPI collect request to the customer's VPA. The customer receives a notification in their UPI app (Google Pay, PhonePe, etc.) to approve the payment.",
+                                    "value": {
+                                        "payment_method": "UPI",
+                                        "upi_details": {
+                                            "upi_vpa": "customer@upi"
+                                        }
+                                    }
+                                },
+                                "native_otp_card": {
+                                    "summary": "Card with Native OTP",
+                                    "description": "Initiates a card payment where the OTP is handled natively (in-page) instead of redirecting to the bank page. Only works for supported BINs.\n\n> ⚠️ Requires Native OTP to be enabled via PA/PG.",
+                                    "value": {
+                                        "payment_method": "CARD",
+                                        "card_details": {
+                                            "card_number": "4111111111111111",
+                                            "card_exp_month": "12",
+                                            "card_exp_year": "2029",
+                                            "name_on_card": "Test User",
+                                            "card_security_code": "123"
+                                        }
+                                    }
+                                },
+                                "saved_card_cvvless": {
+                                    "summary": "Saved Card — CVV-less Payment",
+                                    "description": "Initiates a payment using a previously saved (tokenized) card without CVV. Use the card_token from the **List Cards** API.\n\n> ⚠️ Requires CVV-less to be enabled by PA/PG KAM.",
+                                    "value": {
+                                        "payment_method": "CARD",
+                                        "card_details": {
+                                            "card_token": "tkn_abc123def456",
+                                            "card_security_code": ""
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment initiated",
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "pending_3ds": {
+                                        "summary": "3DS Authentication Required",
+                                        "value": {
+                                            "status": "PENDING_VBV",
+                                            "payment": {
+                                                "authentication": {
+                                                    "url": "https://acs.bank.com/3ds?id=xyz"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "upi_pending": {
+                                        "summary": "UPI Collect Pending",
+                                        "value": {
+                                            "status": "PENDING_VBV",
+                                            "payment": {
+                                                "method_type": "UPI"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Payment initiation failed"
+                    }
+                }
+            }
+        },
+        "/api/payment/{orderId}/status": {
+            "get": {
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Get Order Status",
+                "description": "Retrieves the current status of a payment order from HDFC SmartGateway and updates the local MongoDB record.\n\nAlso serves as the **return URL** for Juspay redirects after payment completion.\n\n### Status Values\n| Status | Meaning |\n|--------|--------- |\n| `NEW` | Order created, no payment attempted |\n| `PENDING_VBV` | Awaiting 3DS / OTP authentication |\n| `CHARGED` | Payment successful |\n| `AUTHENTICATION_FAILED` | 3DS / OTP failed |\n| `AUTHORIZATION_FAILED` | Bank declined the transaction |\n| `JUSPAY_DECLINED` | Juspay risk engine declined |\n| `VOIDED` | Transaction voided |\n| `REFUNDED` | Fully refunded |",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "description": "Order ID to check status for",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "order_1772000476555"
+                    },
+                    {
+                        "name": "redirect",
+                        "in": "query",
+                        "required": false,
+                        "description": "Set to `true` to get an HTML status page instead of JSON (for Juspay redirect handling)",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "true",
+                                "false"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order status retrieved",
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "charged": {
+                                        "summary": "Payment Successful",
+                                        "value": {
+                                            "status": "CHARGED",
+                                            "status_id": 21,
+                                            "id": "ordeh_abc123def456",
+                                            "order_id": "order_1772000476555",
+                                            "amount": 500.0,
+                                            "currency": "INR",
+                                            "payment_method_type": "UPI",
+                                            "txn_id": "txn_xyz789"
+                                        }
+                                    },
+                                    "new_order": {
+                                        "summary": "No Payment Attempted Yet",
+                                        "value": {
+                                            "status": "NEW",
+                                            "status_id": 1,
+                                            "order_id": "order_1772000476555",
+                                            "amount": 500.0
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Status check failed"
+                    }
+                }
+            }
+        },
+        "/api/orders/{orderId}/refund": {
+            "post": {
+                "tags": [
+                    "Refunds"
+                ],
+                "summary": "Create Refund",
+                "description": "Initiates a refund for a **CHARGED** order. Supports both full and partial refunds.\n\nThe refund amount is credited back to the original payment method.\n\n### Refund Types\n| Type | Description |\n|------|-------------|\n| `STANDARD` | Regular refund (3-7 business days) |\n| `INSTANT` | Immediate refund (requires Morpheus gateway in Dashboard) |\n\n### Idempotency\nThe `unique_request_id` field prevents duplicate refund processing. If the same ID is sent twice, the second request returns the original refund without creating a new one.\n\n### Refund Statuses\n| Status | Meaning |\n|--------|--------|\n| `Pending` | Refund initiated, processing |\n| `Success` | Refund completed |\n| `Failure` | Refund failed |\n| `Manual Review` | Needs manual intervention |",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The order ID of the charged order to refund",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "order_1772000476555"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefundRequest"
+                            },
+                            "examples": {
+                                "full_refund": {
+                                    "summary": "Full Refund — ₹500",
+                                    "description": "Refund the entire order amount. The customer receives ₹500 back to their original payment method.",
+                                    "value": {
+                                        "amount": 500.00,
+                                        "unique_request_id": "refund_order_123_full"
+                                    }
+                                },
+                                "partial_refund": {
+                                    "summary": "Partial Refund — ₹200 of ₹500",
+                                    "description": "Refund only a portion of the order. Useful for partial cancellations or returns. Multiple partial refunds can be issued until the total equals the original amount.",
+                                    "value": {
+                                        "amount": 200.00,
+                                        "unique_request_id": "refund_order_123_partial_1"
+                                    }
+                                },
+                                "instant_refund": {
+                                    "summary": "Instant Refund — ₹500",
+                                    "description": "Immediate refund processing. Funds reflect in customer's account within minutes.\n\n> ⚠️ Requires Morpheus gateway to be configured in the Juspay Dashboard.",
+                                    "value": {
+                                        "amount": 500.00,
+                                        "unique_request_id": "refund_order_123_instant",
+                                        "refund_type": "INSTANT"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Refund initiated",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "Pending",
+                                    "refund_id": "rfnd_abc123",
+                                    "amount": 500.0,
+                                    "unique_request_id": "refund_order_123_full",
+                                    "order_id": "order_1772000476555"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid refund request (e.g., order not charged, amount exceeds charged amount)"
+                    },
+                    "500": {
+                        "description": "Refund failed"
+                    }
+                }
+            }
+        },
+        "/api/cards": {
+            "get": {
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "List Saved Cards",
+                "description": "Retrieves all saved (tokenized) cards for a customer from the Juspay card locker.\n\nEach card entry includes:\n- `card_token` — unique identifier for the saved card\n- `card_number` — masked card number (e.g., `411111XXXXXX1111`)\n- `card_brand` — Visa, Mastercard, RuPay, etc.\n- `card_type` — CREDIT_CARD or DEBIT_CARD\n- `name_on_card` — cardholder name\n- `card_exp_month` / `card_exp_year` — expiry\n\n### Relation to CVV-less\nCards saved via `save_to_locker: true` appear in this list. If CVV-less is enabled, these cards show `cvv_required: false` — meaning subsequent payments skip the CVV box.\n\n> 💡 Use `card_token` from this response in the **Initiate Payment** API for saved-card payments.",
+                "parameters": [
+                    {
+                        "name": "customer_id",
+                        "in": "query",
+                        "required": true,
+                        "description": "The customer ID whose saved cards to retrieve",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "cust_009"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of saved cards",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "cards": [
+                                        {
+                                            "card_token": "tkn_abc123def456",
+                                            "card_number": "411111XXXXXX1111",
+                                            "card_brand": "VISA",
+                                            "card_type": "CREDIT_CARD",
+                                            "name_on_card": "Test User",
+                                            "card_exp_month": "12",
+                                            "card_exp_year": "2029",
+                                            "card_issuer": "HDFC BANK",
+                                            "cvv_required": false
+                                        },
+                                        {
+                                            "card_token": "tkn_xyz789ghi012",
+                                            "card_number": "512345XXXXXX6789",
+                                            "card_brand": "MASTERCARD",
+                                            "card_type": "DEBIT_CARD",
+                                            "name_on_card": "Test User",
+                                            "card_exp_month": "06",
+                                            "card_exp_year": "2028",
+                                            "card_issuer": "ICICI BANK",
+                                            "cvv_required": true
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing customer_id parameter"
+                    },
+                    "500": {
+                        "description": "Failed to list cards"
+                    }
+                }
+            }
+        },
+        "/api/card/bin/{bin}": {
+            "get": {
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Card BIN Lookup",
+                "description": "Returns card information based on the BIN (Bank Identification Number — first 6 to 9 digits of a card number).\n\n### Information Returned\n- **Issuer bank** name\n- **Card network** (Visa, Mastercard, RuPay, Amex)\n- **Card type** (Credit, Debit, Prepaid)\n- **Country** of issuance\n- **Eligibility flags**: Mandate support, ATM PIN, Direct OTP, Tokenization, CVV-less\n\n### Use Cases\n- Check if a card supports tokenization before offering `save_to_locker`\n- Check mandate eligibility before offering UPI Autopay\n- Determine if Native OTP is available for the card's BIN\n- Display card network logo during checkout",
+                "parameters": [
+                    {
+                        "name": "bin",
+                        "in": "path",
+                        "required": true,
+                        "description": "First 6-9 digits of the card number",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "examples": {
+                            "visa": {
+                                "summary": "Visa Test BIN",
+                                "value": "411111"
+                            },
+                            "mastercard": {
+                                "summary": "Mastercard Test BIN",
+                                "value": "512345"
+                            },
+                            "rupay": {
+                                "summary": "RuPay BIN",
+                                "value": "607384"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Card BIN details",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "card_brand": "VISA",
+                                    "card_type": "CREDIT_CARD",
+                                    "card_sub_type": "CONSUMER",
+                                    "card_issuer": "HDFC BANK",
+                                    "country": "IN",
+                                    "can_tokenize": true,
+                                    "supports_mandate": true,
+                                    "supports_native_otp": true,
+                                    "cvvless_eligible": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "BIN not found"
+                    },
+                    "500": {
+                        "description": "BIN lookup failed"
+                    }
+                }
+            }
+        },
+        "/api/cards/{cardToken}": {
+            "delete": {
+                "tags": [
+                    "Cards"
+                ],
+                "summary": "Delete Saved Card",
+                "description": "Removes a previously saved (tokenized) card from the Juspay card locker.\n\nAfter deletion, the `card_token` becomes invalid and can no longer be used for CVV-less payments.\n\n### When to Use\n- Customer requests card removal from their account\n- Card has expired\n- Security concerns (compromised card)",
+                "parameters": [
+                    {
+                        "name": "cardToken",
+                        "in": "path",
+                        "required": true,
+                        "description": "The card token from the List Cards API",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "tkn_abc123def456"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "customer_id": {
+                                        "type": "string",
+                                        "description": "Customer who owns the card"
+                                    }
+                                }
+                            },
+                            "example": {
+                                "customer_id": "cust_009"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Card deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "card_deleted": true,
+                                    "card_token": "tkn_abc123def456"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Card deletion failed"
+                    }
+                }
+            }
+        },
+        "/api/mandates": {
+            "post": {
+                "tags": [
+                    "Mandates"
+                ],
+                "summary": "Create Mandate",
+                "description": "Creates a UPI Autopay or OTM mandate directly via the Mandates API.\n\nThis is an alternative to passing `mandate_auth: true` in the **Create Order** API.\n\n### Frequency Options\n| Value | Description |\n|-------|-------------|\n| `DAILY` | Once per day |\n| `WEEKLY` | Once per week |\n| `FORTNIGHTLY` | Every 2 weeks |\n| `MONTHLY` | Once per month |\n| `BIMONTHLY` | Every 2 months |\n| `QUARTERLY` | Every 3 months |\n| `HALFYEARLY` | Every 6 months |\n| `YEARLY` | Once per year |\n| `ONETIME` | One-time fund blocking (OTM) |\n\n### Important Rules\n- Auto-debit up to **₹15,000** without additional auth\n- Transactions > ₹15,000 require UPI PIN authentication\n- Customer can revoke mandate anytime from their UPI app\n\n> ⚠️ Requires PA/PG to enable UPI Autopay + Dashboard configuration.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateMandateRequest"
+                            },
+                            "examples": {
+                                "monthly_sip": {
+                                    "summary": "Monthly SIP — ₹5,000/month for 1 year",
+                                    "description": "Creates a monthly recurring mandate for SIP investments. Customer can be debited up to ₹5,000 per month for 12 months.",
+                                    "value": {
+                                        "order_id": "mandate_sip_001",
+                                        "amount": "1.00",
+                                        "customer_id": "cust_010",
+                                        "frequency": "MONTHLY",
+                                        "max_amount": "5000.00",
+                                        "start_date": "2026-03-01",
+                                        "end_date": "2027-03-01"
+                                    }
+                                },
+                                "insurance_premium": {
+                                    "summary": "Quarterly Insurance Premium — ₹25,000",
+                                    "description": "Quarterly mandate for insurance premium collection.",
+                                    "value": {
+                                        "order_id": "mandate_ins_001",
+                                        "amount": "1.00",
+                                        "customer_id": "cust_012",
+                                        "frequency": "QUARTERLY",
+                                        "max_amount": "25000.00",
+                                        "start_date": "2026-04-01",
+                                        "end_date": "2027-04-01"
+                                    }
+                                },
+                                "otm_booking": {
+                                    "summary": "OTM — Block ₹2,000 for Hotel Booking",
+                                    "description": "One-time mandate to block ₹2,000 for a hotel booking. Execute when guest checks in; auto-release if not executed within validity.",
+                                    "value": {
+                                        "order_id": "otm_hotel_001",
+                                        "amount": "2000.00",
+                                        "customer_id": "cust_013",
+                                        "frequency": "ONETIME",
+                                        "max_amount": "2000.00",
+                                        "start_date": "2026-02-25"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mandate created",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "mandate_id": "mdt_abc123",
+                                    "status": "CREATED",
+                                    "customer_id": "cust_010",
+                                    "max_amount": 5000.0,
+                                    "frequency": "MONTHLY",
+                                    "start_date": "2026-03-01",
+                                    "end_date": "2027-03-01"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Mandate creation failed"
+                    }
+                }
+            }
+        },
+        "/api/mandates/{mandateId}/execute": {
+            "post": {
+                "tags": [
+                    "Mandates"
+                ],
+                "summary": "Execute Mandate",
+                "description": "Triggers a debit (auto-debit) against an active mandate.\n\n### For UPI Autopay (Recurring)\nCall this at least **25 hours before** the intended debit date. A **Pre-Debit Notification** must be sent before execution (see Notify endpoint).\n\n### For OTM (One-Time Mandate)\nExecutes the blocked funds. Can only be called **once**. Partial debit is supported (debit less than blocked amount).\n\n### Flow\n1. Call **Pre-Debit Notify** (UPI Autopay only) → `notification_id` returned\n2. Call **Execute** with `notification_id` → debit initiated\n3. Bank sends SMS to customer\n4. `ORDER_SUCCEEDED` or `ORDER_FAILED` webhook fires\n\n> ⚠️ This is a server-to-server call. Do not expose to frontend.",
+                "parameters": [
+                    {
+                        "name": "mandateId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The mandate ID from Create Mandate response",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "mdt_abc123"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExecuteMandateRequest"
+                            },
+                            "examples": {
+                                "recurring_debit": {
+                                    "summary": "Monthly SIP Debit — ₹5,000",
+                                    "description": "Execute the monthly SIP debit of ₹5,000 against the mandate. Requires a prior pre-debit notification.",
+                                    "value": {
+                                        "amount": 5000.00,
+                                        "order_id": "exec_sip_march_2026",
+                                        "customer_id": "cust_010",
+                                        "notification_id": "notif_abc123"
+                                    }
+                                },
+                                "otm_execute": {
+                                    "summary": "OTM Fund Transfer — ₹2,000",
+                                    "description": "Transfer the full blocked amount of ₹2,000. This can only be called once.",
+                                    "value": {
+                                        "amount": 2000.00,
+                                        "order_id": "otm_exec_hotel_001",
+                                        "customer_id": "cust_013"
+                                    }
+                                },
+                                "otm_partial": {
+                                    "summary": "OTM Partial Debit — ₹1,500 of ₹2,000",
+                                    "description": "Debit only ₹1,500 of the ₹2,000 blocked amount. The remaining ₹500 is auto-released.",
+                                    "value": {
+                                        "amount": 1500.00,
+                                        "order_id": "otm_exec_hotel_partial",
+                                        "customer_id": "cust_013"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mandate execution initiated",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "CHARGED",
+                                    "order_id": "exec_sip_march_2026",
+                                    "amount": 5000.0,
+                                    "mandate_id": "mdt_abc123"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Mandate execution failed"
+                    }
+                }
+            }
+        },
+        "/api/mandates/{mandateId}/revoke": {
+            "post": {
+                "tags": [
+                    "Mandates"
+                ],
+                "summary": "Revoke Mandate",
+                "description": "Cancels an active mandate. After revocation, no further debits can be made.\n\n### When to Use\n- Customer requests subscription cancellation\n- Service/subscription has ended\n- Mandate needs to be replaced with a new one (mandate details cannot be modified, only revoked and recreated)\n\n### Notes\n- Customer can also revoke from their UPI app (Google Pay → Manage Mandates)\n- If customer revokes from UPI app, you'll receive a `MANDATE_REVOKED` webhook\n- Revoked mandates cannot be reactivated",
+                "parameters": [
+                    {
+                        "name": "mandateId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The mandate ID to revoke",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "mdt_abc123"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Mandate revoked",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "mandate_id": "mdt_abc123",
+                                    "status": "REVOKED",
+                                    "revoked_at": "2026-02-25T07:00:00Z"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Mandate revocation failed"
+                    }
+                }
+            }
+        },
+        "/api/mandates/{mandateId}/status": {
+            "get": {
+                "tags": [
+                    "Mandates"
+                ],
+                "summary": "Get Mandate Status",
+                "description": "Checks the current status of a mandate.\n\n### Mandate Statuses\n| Status | Meaning |\n|--------|---------|\n| `CREATED` | Mandate created, awaiting customer auth |\n| `ACTIVE` | Customer authorized, ready for execution |\n| `PAUSED` | Temporarily paused |\n| `REVOKED` | Cancelled (by merchant or customer) |\n| `EXPIRED` | Past end_date |\n| `FAILED` | Registration failed |",
+                "parameters": [
+                    {
+                        "name": "mandateId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The mandate ID to check status for",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "mdt_abc123"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Mandate status",
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "active": {
+                                        "summary": "Active Mandate",
+                                        "value": {
+                                            "mandate_id": "mdt_abc123",
+                                            "status": "ACTIVE",
+                                            "customer_id": "cust_010",
+                                            "max_amount": 5000.0,
+                                            "frequency": "MONTHLY",
+                                            "start_date": "2026-03-01",
+                                            "end_date": "2027-03-01",
+                                            "last_executed": "2026-03-01"
+                                        }
+                                    },
+                                    "revoked": {
+                                        "summary": "Revoked Mandate",
+                                        "value": {
+                                            "mandate_id": "mdt_abc123",
+                                            "status": "REVOKED",
+                                            "revoked_at": "2026-04-15T10:30:00Z"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Mandate status check failed"
+                    }
+                }
+            }
+        },
+        "/api/mandates/{mandateId}/notify": {
+            "post": {
+                "tags": [
+                    "Mandates"
+                ],
+                "summary": "Pre-Debit Notification",
+                "description": "Sends a pre-debit notification to the customer before an upcoming auto-debit.\n\n### Mandatory for UPI Autopay\nPer NPCI guidelines, a pre-debit notification **must** be sent to the customer at least **24 hours** before the scheduled auto-debit.\n\n### Flow\n1. Call this endpoint with the amount and execution date\n2. Customer receives SMS/notification about upcoming debit\n3. Response includes `notification_id`\n4. Use `notification_id` in the **Execute Mandate** API\n5. Track notification delivery via `NOTIFICATION_SUCCEEDED` / `NOTIFICATION_FAILED` webhooks\n\n### Not Required For\n- OTM (One-Time Mandate) — notification is not needed since customer explicitly authorized during creation",
+                "parameters": [
+                    {
+                        "name": "mandateId",
+                        "in": "path",
+                        "required": true,
+                        "description": "The mandate ID for the upcoming debit",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "mdt_abc123"
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PreDebitNotifyRequest"
+                            },
+                            "examples": {
+                                "monthly_notify": {
+                                    "summary": "Monthly SIP Pre-Debit — ₹5,000 on March 1",
+                                    "description": "Notify customer that ₹5,000 will be debited on March 1, 2026 for their SIP mandate. Must be sent at least 24h before.",
+                                    "value": {
+                                        "amount": 5000.00,
+                                        "execution_date": "2026-03-01"
+                                    }
+                                },
+                                "insurance_notify": {
+                                    "summary": "Insurance Premium — ₹25,000 on April 1",
+                                    "description": "Notify customer about quarterly insurance premium debit.",
+                                    "value": {
+                                        "amount": 25000.00,
+                                        "execution_date": "2026-04-01"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Notification sent",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "notification_id": "notif_abc123",
+                                    "status": "SENT",
+                                    "mandate_id": "mdt_abc123",
+                                    "execution_date": "2026-03-01"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Pre-debit notification failed"
+                    }
+                }
+            }
+        },
+        "/webhook/juspay": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Juspay Webhook Handler",
+                "description": "Receives and processes webhook notifications from HDFC SmartGateway.\n\n### Verification\n1. Juspay sends a POST with JSON body + `x-juspay-signature` header\n2. Signature is verified using RSA public key\n3. If valid, local order record is updated\n4. Returns `200 OK` to acknowledge\n\n### Webhook Events\n| Event | When |\n|-------|------|\n| `ORDER_CREATED` | Order was created |\n| `TXN_CREATED` | Transaction initiated |\n| `ORDER_SUCCEEDED` | Payment successful (CHARGED) |\n| `ORDER_FAILED` | Payment failed |\n| `TXN_FAILED` | Transaction failed |\n| `MANDATE_CREATED` | UPI Autopay/OTM mandate authorized |\n| `MANDATE_REVOKED` | Mandate cancelled |\n| `NOTIFICATION_SUCCEEDED` | Pre-debit notification delivered |\n| `NOTIFICATION_FAILED` | Pre-debit notification failed |\n| `REFUND_INITIATED` | Refund processing started |\n| `REFUND_PROCESSED` | Refund completed |\n\n> **Setup**: Dashboard → Payments → Settings → Webhooks → Add Webhook URL + select events",
+                "parameters": [
+                    {
+                        "name": "x-juspay-signature",
+                        "in": "header",
+                        "required": true,
+                        "description": "RSA signature of the request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WebhookEvent"
+                            },
+                            "examples": {
+                                "order_succeeded": {
+                                    "summary": "Payment Successful",
+                                    "description": "Fired when a payment is successfully charged.",
+                                    "value": {
+                                        "event_name": "ORDER_SUCCEEDED",
+                                        "content": {
+                                            "order": {
+                                                "order_id": "order_1772000476555",
+                                                "status": "CHARGED",
+                                                "amount": 500.0,
+                                                "currency": "INR",
+                                                "payment_method_type": "UPI",
+                                                "txn_id": "txn_xyz789"
+                                            }
+                                        }
+                                    }
+                                },
+                                "mandate_created": {
+                                    "summary": "Mandate Authorized",
+                                    "description": "Fired when a customer authorizes a UPI Autopay or OTM mandate via their UPI app.",
+                                    "value": {
+                                        "event_name": "MANDATE_CREATED",
+                                        "content": {
+                                            "order": {
+                                                "order_id": "mandate_sip_001",
+                                                "status": "ACTIVE",
+                                                "mandate_id": "mdt_abc123",
+                                                "max_amount": 5000.0,
+                                                "frequency": "MONTHLY"
+                                            }
+                                        }
+                                    }
+                                },
+                                "refund_processed": {
+                                    "summary": "Refund Completed",
+                                    "description": "Fired when a refund has been successfully processed and credited to the customer.",
+                                    "value": {
+                                        "event_name": "REFUND_PROCESSED",
+                                        "content": {
+                                            "order": {
+                                                "order_id": "order_1772000476555",
+                                                "status": "REFUNDED",
+                                                "refund_amount": 500.0
+                                            }
+                                        }
+                                    }
+                                },
+                                "notification_succeeded": {
+                                    "summary": "Pre-Debit Notification Delivered",
+                                    "description": "Fired when a pre-debit notification has been successfully delivered to the customer. Safe to proceed with mandate execution.",
+                                    "value": {
+                                        "event_name": "NOTIFICATION_SUCCEEDED",
+                                        "content": {
+                                            "order": {
+                                                "order_id": "exec_sip_march_2026",
+                                                "mandate_id": "mdt_abc123",
+                                                "notification_id": "notif_abc123"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Webhook processed successfully"
+                    },
+                    "401": {
+                        "description": "Invalid signature"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CreateOrderRequest": {
+                "type": "object",
+                "required": [
+                    "amount"
+                ],
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "description": "Order amount (e.g., 500 for ₹500)",
+                        "example": 500
+                    },
+                    "currency": {
+                        "type": "string",
+                        "default": "INR",
+                        "description": "ISO 4217 currency code",
+                        "example": "INR"
+                    },
+                    "customerId": {
+                        "type": "string",
+                        "description": "Unique customer ID",
+                        "example": "cust_001"
+                    },
+                    "customer_email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Customer email (mandatory for HDFC SmartGateway)",
+                        "example": "customer@example.com"
+                    },
+                    "customer_phone": {
+                        "type": "string",
+                        "description": "Customer phone (mandatory for HDFC SmartGateway)",
+                        "example": "9876543210"
+                    },
+                    "expiryInMins": {
+                        "type": "integer",
+                        "description": "[Payment Link] Expiry time in minutes",
+                        "example": 30
+                    },
+                    "payment_locks": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "CARD",
+                                "UPI",
+                                "NB",
+                                "WALLET",
+                                "EMI"
+                            ]
+                        },
+                        "description": "[Payment Locking] Methods to ENABLE (all others hidden)"
+                    },
+                    "payment_locks_disable": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "CARD",
+                                "UPI",
+                                "NB",
+                                "WALLET",
+                                "EMI"
+                            ]
+                        },
+                        "description": "[Payment Locking] Methods to DISABLE (all others visible)"
+                    },
+                    "surcharge": {
+                        "type": "object",
+                        "description": "[Surcharge] Convenience fee added to order",
+                        "properties": {
+                            "surcharge_amount": {
+                                "type": "number",
+                                "description": "Fee amount (₹)",
+                                "example": 10.00
+                            },
+                            "tax_amount": {
+                                "type": "number",
+                                "description": "Tax on surcharge (₹)",
+                                "example": 1.80
+                            }
+                        }
+                    },
+                    "mandate_auth": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "[UPI Autopay / OTM] Enable mandate creation"
+                    },
+                    "otm": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "[OTM] Enable one-time fund blocking (use with mandate_auth: true)"
+                    },
+                    "save_to_locker": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "[CVV-less] Tokenize card for future CVV-less payments"
+                    },
+                    "native_otp": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "[Native OTP] Enable in-page OTP entry"
+                    }
+                }
+            },
+            "CreateOrderResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "CREATED"
+                    },
+                    "status_id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "id": {
+                        "type": "string",
+                        "description": "Juspay internal hash",
+                        "example": "ordeh_abc123def456"
+                    },
+                    "order_id": {
+                        "type": "string",
+                        "example": "order_1772000476555"
+                    },
+                    "payment_links": {
+                        "type": "object",
+                        "properties": {
+                            "web": {
+                                "type": "string",
+                                "format": "uri"
+                            },
+                            "mobile": {
+                                "type": "string",
+                                "format": "uri"
+                            },
+                            "iframe": {
+                                "type": "string",
+                                "format": "uri"
+                            }
+                        }
+                    },
+                    "order_expiry": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "InitiatePaymentRequest": {
+                "type": "object",
+                "required": [
+                    "payment_method"
+                ],
+                "properties": {
+                    "payment_method": {
+                        "type": "string",
+                        "enum": [
+                            "CARD",
+                            "UPI",
+                            "NB",
+                            "WALLET"
+                        ]
+                    },
+                    "card_details": {
+                        "type": "object",
+                        "properties": {
+                            "card_number": {
+                                "type": "string",
+                                "example": "4111111111111111"
+                            },
+                            "card_exp_month": {
+                                "type": "string",
+                                "example": "12"
+                            },
+                            "card_exp_year": {
+                                "type": "string",
+                                "example": "2029"
+                            },
+                            "name_on_card": {
+                                "type": "string",
+                                "example": "Test User"
+                            },
+                            "card_security_code": {
+                                "type": "string",
+                                "example": "123"
+                            },
+                            "card_token": {
+                                "type": "string",
+                                "description": "For saved-card CVV-less payments"
+                            }
+                        }
+                    },
+                    "upi_details": {
+                        "type": "object",
+                        "properties": {
+                            "upi_vpa": {
+                                "type": "string",
+                                "example": "customer@upi"
+                            }
+                        }
+                    }
+                }
+            },
+            "RefundRequest": {
+                "type": "object",
+                "required": [
+                    "amount"
+                ],
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "description": "Refund amount (can be partial)",
+                        "example": 500.00
+                    },
+                    "unique_request_id": {
+                        "type": "string",
+                        "description": "Idempotency key to prevent duplicate refunds",
+                        "example": "refund_order_123_full"
+                    },
+                    "refund_type": {
+                        "type": "string",
+                        "enum": [
+                            "STANDARD",
+                            "INSTANT"
+                        ],
+                        "default": "STANDARD",
+                        "description": "INSTANT requires Morpheus gateway"
+                    }
+                }
+            },
+            "CreateMandateRequest": {
+                "type": "object",
+                "required": [
+                    "order_id",
+                    "amount",
+                    "customer_id",
+                    "frequency",
+                    "max_amount",
+                    "start_date"
+                ],
+                "properties": {
+                    "order_id": {
+                        "type": "string",
+                        "example": "mandate_sip_001"
+                    },
+                    "amount": {
+                        "type": "string",
+                        "description": "Initial authorization amount",
+                        "example": "1.00"
+                    },
+                    "customer_id": {
+                        "type": "string",
+                        "example": "cust_010"
+                    },
+                    "frequency": {
+                        "type": "string",
+                        "enum": [
+                            "DAILY",
+                            "WEEKLY",
+                            "FORTNIGHTLY",
+                            "MONTHLY",
+                            "BIMONTHLY",
+                            "QUARTERLY",
+                            "HALFYEARLY",
+                            "YEARLY",
+                            "ONETIME"
+                        ],
+                        "example": "MONTHLY"
+                    },
+                    "max_amount": {
+                        "type": "string",
+                        "description": "Max debit per cycle",
+                        "example": "5000.00"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2026-03-01"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "2027-03-01"
+                    }
+                }
+            },
+            "ExecuteMandateRequest": {
+                "type": "object",
+                "required": [
+                    "amount"
+                ],
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "description": "Amount to debit",
+                        "example": 5000.00
+                    },
+                    "order_id": {
+                        "type": "string",
+                        "description": "Unique order ID for this execution",
+                        "example": "exec_sip_march_2026"
+                    },
+                    "customer_id": {
+                        "type": "string",
+                        "example": "cust_010"
+                    },
+                    "notification_id": {
+                        "type": "string",
+                        "description": "Pre-debit notification ID (required for UPI Autopay, not OTM)",
+                        "example": "notif_abc123"
+                    }
+                }
+            },
+            "PreDebitNotifyRequest": {
+                "type": "object",
+                "required": [
+                    "amount"
+                ],
+                "properties": {
+                    "amount": {
+                        "type": "number",
+                        "description": "Amount that will be debited",
+                        "example": 5000.00
+                    },
+                    "execution_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Expected debit date (YYYY-MM-DD)",
+                        "example": "2026-03-01"
+                    }
+                }
+            },
+            "WebhookEvent": {
+                "type": "object",
+                "properties": {
+                    "event_name": {
+                        "type": "string",
+                        "enum": [
+                            "ORDER_CREATED",
+                            "TXN_CREATED",
+                            "ORDER_SUCCEEDED",
+                            "ORDER_FAILED",
+                            "TXN_FAILED",
+                            "MANDATE_CREATED",
+                            "MANDATE_REVOKED",
+                            "NOTIFICATION_SUCCEEDED",
+                            "NOTIFICATION_FAILED",
+                            "REFUND_INITIATED",
+                            "REFUND_PROCESSED"
+                        ]
+                    },
+                    "content": {
+                        "type": "object",
+                        "properties": {
+                            "order": {
+                                "type": "object",
+                                "properties": {
+                                    "order_id": {
+                                        "type": "string"
+                                    },
+                                    "status": {
+                                        "type": "string"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "currency": {
+                                        "type": "string"
+                                    },
+                                    "payment_method_type": {
+                                        "type": "string"
+                                    },
+                                    "txn_id": {
+                                        "type": "string"
+                                    },
+                                    "mandate_id": {
+                                        "type": "string"
+                                    },
+                                    "notification_id": {
+                                        "type": "string"
+                                    },
+                                    "refund_amount": {
+                                        "type": "number"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

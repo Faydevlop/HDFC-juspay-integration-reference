@@ -1,0 +1,64 @@
+NATIVE OTP - DASHBOARD REQUIREMENTS
+=====================================
+Doc: https://docs.hdfcbank.juspay.in/docs/smartgateway-tranportal-integration/docs/native-otp/native-otp-introduction
+
+WHAT IT IS:
+-----------
+Native OTP eliminates the redirect to bank's OTP page during card payments.
+Instead, the OTP input is shown directly on the merchant's payment page or
+within the SmartGateway UI. This provides a smoother, faster checkout experience
+and reduces drop-offs caused by slow bank pages.
+
+PREREQUISITES:
+--------------
+1. Enable Native OTP with PA/PG Partner (MANDATORY - FIRST STEP)
+   - Contact your Payment Aggregator or Payment Gateway partner
+   - Ask them to enable Native OTP support for your merchant account
+   - Without this, the feature will not work even if dashboard is configured
+
+2. Dashboard Configuration:
+   a) Login to Juspay Dashboard
+   b) Go to: Marketplace tab
+      - Enable "Native OTP" screen on your Juspay payment page
+   c) Go to: PG Control Centre
+      - Update your PA/PG setup to include Native OTP support
+
+3. Card BIN Support:
+   - Native OTP is only available for SELECTED Card BINs
+   - The supported BINs are enabled by your PA/PG partner
+   - Not all banks support Native OTP — check with your PA/PG
+
+4. Integration Type Restrictions:
+   - Works with: Juspay Payment Page (Hypercheckout)
+   - Works with: Express Checkout APIs (web & app) — but merchant 
+     needs to create their own Native OTP screen
+   - Does NOT work with: PayV3 integration for card payments on web
+
+DASHBOARD CONFIGURATION STEPS:
+-------------------------------
+1. Login to Juspay Dashboard
+
+2. Enable Native OTP:
+   Marketplace tab > Enable "Native OTP" screen
+
+3. Update PG Configuration:
+   Payments > PG Control Centre > Edit Gateway > Enable Native OTP
+
+4. Backend Updates Required:
+   - Handle changes in Order Status API response
+   - Handle Native OTP-specific webhook events
+   - If using Express Checkout: build OTP input UI
+
+ANDROID APP EXTRAS (if applicable):
+------------------------------------
+- Auto-read OTP: Available with SMS read permission
+- Auto-submit OTP: One-click payment experience
+- Requires SMS read permission from user
+
+API PARAMETERS:
+---------------
+When creating order:
+- native_otp: true (in options)
+
+NOTE: This only works after PA/PG enables Native OTP support AND
+the dashboard Marketplace configuration is done.

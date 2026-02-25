@@ -1,0 +1,71 @@
+CVV-LESS PAYMENTS - DASHBOARD REQUIREMENTS
+============================================
+Doc: https://docs.hdfcbank.juspay.in/docs/hdfc-resources/docs/card-network-tokenization/cvvless-payments
+
+WHAT IT IS:
+-----------
+CVV-less payments allow customers to pay using their saved (tokenized) cards
+WITHOUT entering the CVV. After the initial card save (tokenization), subsequent
+transactions skip the CVV input — making checkout faster and reducing drop-offs.
+
+PREREQUISITES:
+--------------
+1. Merchant-Specific Enablement (MANDATORY - FIRST STEP)
+   - This feature must be SEPARATELY enabled for your merchant account
+   - Contact your PA/PG Key Account Manager to activate CVV-less
+   - For PayU gateway: PayU's KAM must activate it before Juspay can enable
+   - Juspay cannot enable this until the gateway partner activates it first
+
+2. At Least ONE CVV-less Supported Gateway
+   - Your Juspay Dashboard must have at least one gateway configured
+     that supports CVV-less transactions
+   - Check: Dashboard > PG Control Centre > gateway list
+
+3. Card Network Support:
+   - Visa: Supported (all issuing banks)
+   - Mastercard: Supported (all issuing banks)
+   - RuPay: Only limited issuing banks support CVV-less
+   - American Express: Only limited issuing banks support CVV-less
+
+4. Card Must Be Tokenized (Saved) First:
+   - CVV-less ONLY works for saved/tokenized cards
+   - New cards or guest checkout ALWAYS require CVV
+   - Customer must have saved their card in a previous transaction
+
+DASHBOARD CONFIGURATION STEPS:
+-------------------------------
+1. Verify Gateway Supports CVV-less:
+   Dashboard > PG Control Centre
+   Check if your configured gateway supports CVV-less transactions
+
+2. Configure Priority Logic (Optional):
+   Dashboard > Priority Logics
+   - Use filter "cvvLessTxn" to create rule-based or code-based
+     priority logic for CVV-less payments
+   - Can also disable specific gateways for CVV-less
+
+3. For Payment Page Integration:
+   - Juspay automatically removes CVV box for eligible saved cards
+   - Requires Over-the-Air (OTA) update to latest Payment Page version
+   - No manual code changes needed for Payment Page
+
+4. For Express Checkout Integration:
+   - OTA update may be needed
+   - Merchant UI should check List Card API/SDK response
+   - Remove CVV input box based on API response for eligible cards
+
+API PARAMETERS:
+---------------
+When creating order:
+- save_to_locker: true (to enable card tokenization)
+
+NOTE: save_to_locker enables card SAVING. CVV-less applies automatically
+on subsequent payments with saved cards, IF the feature is enabled at 
+merchant + gateway level.
+
+IMPORTANT LIMITATIONS:
+----------------------
+- Does NOT work for guest checkout (new/unsaved cards)
+- Does NOT work if gateway doesn't support CVV-less
+- Card BIN must be from a supported issuing bank (for RuPay/Amex)
+- First transaction with a new card ALWAYS requires CVV

@@ -1,0 +1,78 @@
+PAYMENT LOCKING - DASHBOARD REQUIREMENTS
+==========================================
+Doc: https://docs.hdfcbank.juspay.in/docs/hdfc-resources/docs/common-resources/payment-locking
+
+WHAT IT IS:
+-----------
+Payment Locking allows merchants to control which payment methods are shown
+or hidden on the SmartGateway payment page. You can enable only specific
+methods (e.g., show only UPI) or disable specific ones (e.g., hide Wallets).
+
+USE CASES:
+----------
+- Show only UPI for users who primarily pay via UPI
+- Show only eligible card options for bank partnerships
+- Disable COD for high-value orders
+- Blacklist certain wallet partners temporarily
+- Show only EMI options for high-value purchases
+
+PREREQUISITES:
+--------------
+1. Payment Page (Hypercheckout) Integration Required
+   - Payment Locking ONLY works with the Payment Page / Hypercheckout integration
+   - It does NOT work with direct TranPortal (seamless) integration
+   - Ensure your account is onboarded for Payment Page integration
+
+2. For EMI-based Locking Only:
+   - Contact your Juspay Point of Contact (POC) to enable EMI filters
+   - Basic payment method locking (Card, UPI, NB, Wallet) should work via API
+
+3. Verify payment_page_client_id:
+   - Sandbox: Use "hdfcmaster" or your Merchant ID
+   - Production: Use your Merchant ID
+   - IMPORTANT: Ask HDFC team to confirm which client_id to use
+
+DASHBOARD CONFIGURATION STEPS:
+-------------------------------
+1. Verify Payment Page Integration:
+   Dashboard > Payments > PG Control Centre
+   Check that Payment Page / Hypercheckout is the active integration type
+
+2. Verify Payment Methods:
+   Dashboard > Payments > PG Control Centre
+   Confirm which payment methods are enabled for your merchant account
+
+3. No special dashboard toggle needed for basic payment locking
+   - It is controlled via the payment_filter parameter in the Create Order API
+   - But the ACCOUNT must be properly onboarded for Hypercheckout
+
+API FORMAT (payment_filter parameter):
+--------------------------------------
+To DISABLE specific methods (show all EXCEPT listed):
+{
+    "payment_filter": {
+        "allowDefaultOptions": true,
+        "options": [
+            { "paymentMethodType": "WALLET", "enable": false }
+        ]
+    }
+}
+
+To ENABLE only specific methods (hide all EXCEPT listed):
+{
+    "payment_filter": {
+        "allowDefaultOptions": false,
+        "options": [
+            { "paymentMethodType": "CARD", "enable": true }
+        ]
+    }
+}
+
+SUPPORTED paymentMethodType VALUES:
+- CARD
+- UPI
+- NB (NetBanking)
+- WALLET
+- EMI (requires POC enablement)
+
+NOTE: All fields are CASE-SENSITIVE

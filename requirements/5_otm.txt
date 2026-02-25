@@ -1,0 +1,58 @@
+ONE-TIME MANDATE (OTM) - DASHBOARD REQUIREMENTS
+=================================================
+Doc: https://docs.hdfcbank.juspay.in/docs/smartgateway-tranportal-integration/docs/tranportal-integration/one-time-mandate
+
+WHAT IT IS:
+-----------
+One-Time Mandate (OTM) is a form of UPI Autopay where funds are BLOCKED upfront
+in the customer's account and can be executed (debited) only ONCE. Unlike regular
+mandates, OTM is for one-time use — the money is reserved first, then transferred.
+
+USE CASES:
+----------
+- E-commerce pre-authorization (block amount, debit after delivery)
+- Booking confirmation with delayed payment
+- Deposit collection with conditional execution
+
+PREREQUISITES:
+--------------
+1. Same as UPI Autopay (see 3_upi_autopay.txt):
+   - Contact PA/PG partner to enable UPI Autopay + OTM support
+   - Enable UPI Collect & UPI Intent under Mandates/Subscriptions in Dashboard
+
+2. Dashboard Configuration:
+   a) Payments > PG Control Centre > Edit Gateway Configuration
+   b) Payment Method Configurations > Enable UPI Collect & Intent (Mandates)
+   c) Advanced Features > Set "Enable Emandate" to "True"
+
+3. Webhook Configuration:
+   Dashboard > Payments > Settings > Webhooks
+   Enable: Mandate Created, Mandate Revoked, Notification Succeeded/Failed
+
+OTM FLOW:
+---------
+1. Merchant creates order with OTM parameters
+2. Customer authorizes fund-blocking via their UPI app
+   - UPI app shows exact amount to be blocked
+3. Registration + fund-blocking happen simultaneously
+4. Merchant calls Juspay Execution API to transfer blocked funds
+5. If debit is within 14 days from start date + before expiry:
+   - Funds transfer automatically (no customer notification needed)
+6. Partial debit is also supported
+
+API PARAMETERS:
+---------------
+When creating an OTM:
+- options.create_mandate: "REQUIRED" or "OPTIONAL"
+- mandate.max_amount: maximum amount to block (MANDATORY)
+- mandate.start_date: start date (MANDATORY)
+- mandate.end_date: expiry date
+- mandate.frequency: typically "ONETIME" for OTM
+
+IMPORTANT RULES:
+----------------
+- Fund block + registration happen together
+- Can only be executed ONCE (one-time debit)
+- Customer cannot be debited beyond the blocked amount
+- Merchant can do partial debit
+- If not executed within validity period, funds are automatically released

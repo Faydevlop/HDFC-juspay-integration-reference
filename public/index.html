@@ -4,179 +4,592 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juspay HDFC SmartGateway Feature Dashboard</title>
+    <title>Juspay HDFC SmartGateway — Feature Dashboard</title>
+    <meta name="description" content="Test and manage HDFC SmartGateway payment features including UPI Autopay, Payment Locking, Surcharge, and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(99, 102, 241, 0.4);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gradient-1: linear-gradient(135deg, #6366f1, #8b5cf6);
+            --gradient-2: linear-gradient(135deg, #3b82f6, #6366f1);
+            --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
+            --glass: rgba(255, 255, 255, 0.03);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f4f7f6;
-            padding: 40px;
-            color: #333;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 900px;
+        /* Ambient background animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.04) 0%, transparent 60%);
+            animation: ambientShift 20s ease-in-out infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes ambientShift {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-2%, 2%) rotate(1deg); }
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            padding: 40px 24px;
         }
 
-        h1 {
-            color: #004a99;
+        /* Header */
+        .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 48px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
         }
 
-        .section {
-            border: 1px solid #eee;
-            padding: 15px;
+        .header-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 15px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .header-links {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .header-links a {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
             border-radius: 8px;
-            background: #fafafa;
-        }
-
-        .section h3 {
-            margin-top: 0;
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
-        }
-
-        .feature-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: white;
-            border: 1px solid #007bff;
-            color: #007bff;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: left;
+            font-size: 13px;
             font-weight: 600;
+            text-decoration: none;
             transition: all 0.2s;
         }
 
-        .feature-btn:hover {
-            background: #007bff;
+        .link-primary {
+            background: var(--gradient-1);
             color: white;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+        }
+
+        .link-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
+        }
+
+        .link-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .link-secondary:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        /* Section Labels */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            margin-top: 8px;
+        }
+
+        .section-label h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            white-space: nowrap;
+        }
+
+        .section-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-subtle);
+        }
+
+        /* Feature Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 700px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        /* Feature Card */
+        .card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 22px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-1);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+            box-shadow: var(--shadow-glow);
             transform: translateY(-2px);
         }
 
-        .feature-btn span {
-            font-size: 0.8em;
-            font-weight: normal;
-            display: block;
-            color: inherit;
-            opacity: 0.8;
+        .card:hover::before {
+            opacity: 1;
         }
 
-        #status-panel {
-            margin-top: 30px;
-            padding: 15px;
-            background: #222;
-            color: #0f0;
-            font-family: monospace;
+        .card:active {
+            transform: translateY(0);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 14px;
+            background: var(--glass);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .card h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+
+        .card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .card-tag {
+            display: inline-block;
+            padding: 3px 10px;
             border-radius: 6px;
-            min-height: 100px;
-            white-space: pre-wrap;
-            overflow-x: auto;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: rgba(99, 102, 241, 0.1);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.15);
         }
 
-        .label-feature {
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 5px;
-            display: block;
+        .card-tag.tag-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.15);
+        }
+
+        /* Console Panel */
+        .console-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .console-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .console-header .title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .console-header .dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .console-header .dots span {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .console-header .dots span:nth-child(1) { background: #ef4444; }
+        .console-header .dots span:nth-child(2) { background: #f59e0b; }
+        .console-header .dots span:nth-child(3) { background: #22c55e; }
+
+        .console-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-clear {
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border-subtle);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-clear:hover {
+            border-color: var(--border-hover);
+            color: var(--text-secondary);
+        }
+
+        #console {
+            padding: 20px;
+            min-height: 160px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 12.5px;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        #console::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #console::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #console::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 3px;
+        }
+
+        .log-info { color: #60a5fa; }
+        .log-success { color: #4ade80; }
+        .log-error { color: #f87171; }
+        .log-dim { color: var(--text-muted); }
+        .log-highlight { color: #c084fc; }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .footer p {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Loading animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>Juspay Feature Dashboard</h1>
-
-        <div class="grid">
-            <!-- Payment Suite V2 -->
-            <div class="section">
-                <h3>Payment Suite V2</h3>
-                <button class="feature-btn" onclick="testFeature('standard')">
-                    Standard Payment
-                    <span>Basic order create & initiate</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('autopay')">
-                    UPI Autopay / OTM
-                    <span>Setup recurring mandate (mandate_auth: true)</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('locking')">
-                    Payment Locking
-                    <span>Block NetBanking (payment_locks: ["NB"])</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('surcharge')">
-                    Surcharge
-                    <span>Add ₹10.00 convenience fee</span>
-                </button>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-badge">
+                <span class="dot"></span>
+                Sandbox Environment — SG4547
             </div>
+            <h1>SmartGateway Feature Dashboard</h1>
+            <p>Test all 8 HDFC SmartGateway features. Each card creates a real order via the Juspay API and returns a payment page link.</p>
+            <div class="header-links">
+                <a href="/docs.html" class="link-primary" target="_blank">📄 API Docs</a>
+                <a href="https://dashboard.smartgateway.hdfcuat.bank.in" class="link-secondary" target="_blank">🏦 HDFC Dashboard</a>
+            </div>
+        </header>
 
-            <!-- Next Gen Experience -->
-            <div class="section">
-                <h3>Next Gen & Affordability</h3>
-                <button class="feature-btn" onclick="testFeature('native_otp')">
-                    Native OTP
-                    <span>Client-side OTP handling (native_otp: true)</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('cvv_less')">
-                    CVV-Less Payments
-                    <span>Tokenized card flow (save_to_locker: true)</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('dcc')">
-                    DCC (Currency Conv)
-                    <span>Dynamic Currency Conversion enabled</span>
-                </button>
-                <button class="feature-btn" onclick="testFeature('offers')">
-                    Offers Engine
-                    <span>Apply campaign ID (OFFER123)</span>
-                </button>
+        <!-- Core Features -->
+        <div class="section-label"><h2>Core Payment Features</h2></div>
+        <div class="grid">
+            <div class="card" onclick="testFeature('standard')">
+                <div class="card-icon">💳</div>
+                <h3>Standard Payment</h3>
+                <p>Create a basic order and redirect to the hosted payment page. Supports Cards, UPI, NetBanking, and Wallets.</p>
+                <span class="card-tag">POST /api/orders</span>
+            </div>
+            <div class="card" onclick="testFeature('payment_link')">
+                <div class="card-icon">🔗</div>
+                <h3>Payment Link</h3>
+                <p>Generate a shareable payment URL with a 30-minute expiry. Send via SMS, email or WhatsApp.</p>
+                <span class="card-tag">expiryInMins: 30</span>
+            </div>
+            <div class="card" onclick="testFeature('locking')">
+                <div class="card-icon">🔒</div>
+                <h3>Payment Locking</h3>
+                <p>Control which payment methods are visible. This example hides the WALLET method from the payment page.</p>
+                <span class="card-tag">payment_filter</span>
+                <span class="card-tag tag-warning">Dashboard Required</span>
+            </div>
+            <div class="card" onclick="testFeature('surcharge')">
+                <div class="card-icon">💰</div>
+                <h3>Surcharge</h3>
+                <p>Add a ₹10.00 convenience fee + ₹1.80 GST (18%) on top of the order. Total: ₹511.80.</p>
+                <span class="card-tag">surcharge_amount</span>
+                <span class="card-tag tag-warning">Dashboard Required</span>
             </div>
         </div>
 
-        <div id="status-panel">System Ready. Click a feature to test...</div>
+        <!-- Advanced Features -->
+        <div class="section-label"><h2>Advanced Features</h2></div>
+        <div class="grid">
+            <div class="card" onclick="testFeature('autopay')">
+                <div class="card-icon">🔄</div>
+                <h3>UPI Autopay</h3>
+                <p>Set up a recurring UPI mandate. Customer authorizes via their UPI app. Auto-debit happens on schedule.</p>
+                <span class="card-tag">mandate_auth: true</span>
+                <span class="card-tag tag-warning">PA/PG Required</span>
+            </div>
+            <div class="card" onclick="testFeature('otm')">
+                <div class="card-icon">🎯</div>
+                <h3>One-Time Mandate (OTM)</h3>
+                <p>Block ₹500 upfront in the customer's account. Execute the debit once using the Execution API.</p>
+                <span class="card-tag">otm: true</span>
+                <span class="card-tag tag-warning">PA/PG Required</span>
+            </div>
+            <div class="card" onclick="testFeature('native_otp')">
+                <div class="card-icon">🔐</div>
+                <h3>Native OTP</h3>
+                <p>Show OTP input directly on the payment page instead of redirecting to the bank's page. Faster checkout.</p>
+                <span class="card-tag">native_otp: true</span>
+                <span class="card-tag tag-warning">PA/PG Required</span>
+            </div>
+            <div class="card" onclick="testFeature('cvv_less')">
+                <div class="card-icon">🪪</div>
+                <h3>CVV-Less Payments</h3>
+                <p>Tokenize the customer's card for future use. Subsequent payments skip the CVV box automatically.</p>
+                <span class="card-tag">save_to_locker: true</span>
+                <span class="card-tag tag-warning">KAM Required</span>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="console-wrapper">
+            <div class="console-header">
+                <div class="title">
+                    <span>⬤</span> Console Output
+                </div>
+                <div class="console-actions">
+                    <button class="btn-clear" onclick="clearConsole()">Clear</button>
+                </div>
+                <div class="dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+            <div id="console">
+<span class="log-dim">[system]</span> <span class="log-info">Dashboard ready. Click any feature card to test.</span>
+<span class="log-dim">[system]</span> <span class="log-dim">API docs available at <a href="/docs.html" style="color: #818cf8;">/docs.html</a></span>
+</div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Merchant SG4547 · Sandbox UAT · <a href="/docs.html">API Documentation ↗</a></p>
+        </footer>
     </div>
 
     <script>
-        const statusPanel = document.getElementById('status-panel');
+        const con = document.getElementById('console');
+
+        function log(msg, cls = '') {
+            const line = document.createElement('div');
+            line.innerHTML = msg;
+            if (cls) line.className = cls;
+            con.appendChild(line);
+            con.scrollTop = con.scrollHeight;
+        }
+
+        function clearConsole() {
+            con.innerHTML = '<span class="log-dim">[system]</span> <span class="log-info">Console cleared.</span>\n';
+        }
+
+        function timestamp() {
+            return new Date().toLocaleTimeString('en-US', { hour12: false });
+        }
 
         async function testFeature(type) {
-            statusPanel.innerText = `Testing Feature: ${type.toUpperCase()}...\n`;
+            const labels = {
+                standard: 'Standard Payment',
+                payment_link: 'Payment Link (30-min)',
+                locking: 'Payment Locking',
+                surcharge: 'Surcharge + GST',
+                autopay: 'UPI Autopay',
+                otm: 'One-Time Mandate',
+                native_otp: 'Native OTP',
+                cvv_less: 'CVV-Less (Save Card)'
+            };
+
+            log(`\n<span class="log-dim">[${timestamp()}]</span> <span class="log-highlight">▸ Testing: ${labels[type] || type}</span>`);
+            log(`<span class="log-dim">[${timestamp()}]</span> <span class="spinner"></span>Creating order...`);
 
             let payload = {
                 amount: 500,
                 currency: 'INR',
-                customerId: 'user_' + Math.floor(Math.random() * 1000),
+                customerId: 'cust_' + Math.floor(Math.random() * 10000),
                 customer_email: 'test@example.com',
                 customer_phone: '9876543210'
             };
 
             switch (type) {
+                case 'payment_link':
+                    payload.expiryInMins = 30;
+                    break;
                 case 'autopay':
                     payload.mandate_auth = true;
-                    payload.amount = 1.00; // Small amount for mandate setup
+                    payload.amount = 1.00;
+                    break;
+                case 'otm':
+                    payload.mandate_auth = true;
+                    payload.otm = true;
                     break;
                 case 'locking':
-                    // Disable WALLET payment method (as per HDFC docs example)
                     payload.payment_locks_disable = ['WALLET'];
                     break;
                 case 'surcharge':
-                    payload.surcharge = {
-                        surcharge_amount: 10.00,
-                        tax_amount: 1.80 // 18% GST example
-                    };
+                    payload.surcharge = { surcharge_amount: 10.00, tax_amount: 1.80 };
                     break;
                 case 'native_otp':
                     payload.native_otp = true;
@@ -184,33 +597,43 @@
                 case 'cvv_less':
                     payload.save_to_locker = true;
                     break;
-                case 'dcc':
-                    payload.dcc = true;
-                    break;
-                case 'offers':
-                    payload.offer_id = 'ORD_OFFER_123';
-                    break;
             }
 
+            log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-dim">Payload: ${JSON.stringify(payload, null, 2)}</span>`);
+
             try {
-                const response = await fetch('/api/orders', {
+                const res = await fetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await response.json();
+                const data = await res.json();
 
-                statusPanel.innerText += `Request Status: ${response.status}\n`;
-                statusPanel.innerText += `Juspay Order ID: ${data.id || 'N/A'}\n`;
-                statusPanel.innerText += `Payload Sent: ${JSON.stringify(payload, null, 2)}\n\n`;
-                statusPanel.innerText += `Response Data: ${JSON.stringify(data, null, 2)}`;
+                // Remove spinner
+                const spinners = con.querySelectorAll('.spinner');
+                spinners.forEach(s => {
+                    const parent = s.parentElement;
+                    if (parent) parent.innerHTML = parent.innerHTML.replace(/<span class="spinner"><\/span>/, '');
+                });
 
-                if (data.payment_links && data.payment_links.web) {
-                    const proceed = confirm(`Order created successfully for ${type}.\n\nJuspay ID: ${data.id}\n\nWould you like to proceed to the payment page?`);
-                    if (proceed) window.open(data.payment_links.web, '_blank');
+                if (res.ok) {
+                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-success">✓ Order created — Status: ${data.status} (${res.status})</span>`);
+                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-info">  Juspay ID: ${data.id || 'N/A'}</span>`);
+                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-info">  Order ID:  ${data.order_id || 'N/A'}</span>`);
+
+                    if (data.payment_links && data.payment_links.web) {
+                        log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-success">  Payment Link: <a href="${data.payment_links.web}" target="_blank" style="color: #4ade80; text-decoration: underline;">${data.payment_links.web}</a></span>`);
+
+                        const open = confirm(`✅ Order created for "${labels[type]}".\n\nJuspay ID: ${data.id}\n\nOpen payment page?`);
+                        if (open) window.open(data.payment_links.web, '_blank');
+                    }
+                } else {
+                    log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-error">✗ Error ${res.status}: ${JSON.stringify(data)}</span>`);
                 }
+
+                log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-dim">Full response: ${JSON.stringify(data, null, 2)}</span>`);
             } catch (err) {
-                statusPanel.innerText += `Error: ${err.message}`;
+                log(`<span class="log-dim">[${timestamp()}]</span> <span class="log-error">✗ Network error: ${err.message}</span>`);
             }
         }
     </script>

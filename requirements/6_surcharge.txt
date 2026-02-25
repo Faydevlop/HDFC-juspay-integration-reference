@@ -1,0 +1,63 @@
+SURCHARGE (CONVENIENCE FEE) - DASHBOARD REQUIREMENTS
+=====================================================
+Doc: https://docs.hdfcbank.juspay.in/docs/surcharge-hdfc/docs/overview/overview
+
+WHAT IT IS:
+-----------
+Surcharge allows merchants to add an additional fee (flat amount or percentage)
+on top of the order amount. This is commonly used for convenience fees,
+payment processing charges, or tax on payment method usage.
+
+PREREQUISITES:
+--------------
+1. Surcharge Must Be Configured in the Dashboard (MANDATORY)
+   - This feature CANNOT be used via API alone
+   - You MUST create surcharge rules in the Juspay Dashboard first
+   - Without dashboard configuration, the surcharge parameters in API are ignored
+
+2. Merchant Account Must Support Surcharge
+   - Contact HDFC/Juspay team to confirm surcharge is enabled for your account
+
+DASHBOARD CONFIGURATION STEPS (CRITICAL):
+------------------------------------------
+1. Login to Juspay Dashboard
+
+2. Navigate to: PG Control Center > Surcharge (4th tab)
+
+3. Create a Surcharge Rule:
+   a) Click "Add New Rule" or "Create Surcharge Rule"
+   b) Enter a unique, descriptive name for the rule
+   c) Select Configuration Type:
+      - "Rule-Based UI": Visual rule builder (recommended)
+      - "Code-Based UI": Advanced JavaScript-based logic
+   d) Define Conditions (when to apply surcharge):
+      - By Payment Method (e.g., only on Credit Cards)
+      - By Transaction Amount (e.g., orders above INR 1000)
+      - By Card Issuer (e.g., specific bank cards)
+   e) Set Surcharge Value:
+      - Flat Fee: Fixed amount (e.g., INR 10.00)
+      - Percentage: % of transaction amount (e.g., 2%)
+      - Flat Fee + Percentage combination
+   f) Save and Activate the rule
+
+4. Refund Configuration (Optional):
+   Dashboard > Enable "Include Surcharge Amount in Refund" flag
+   - If enabled: Full refund includes surcharge
+   - If disabled: Partial refund excluding surcharge
+
+API PARAMETERS:
+---------------
+When creating order (after dashboard surcharge rules are active):
+- surcharge_amount: additional charge amount (string, e.g., "10.00")
+- tax_amount: tax on surcharge (string, e.g., "1.80")
+
+NOTE: These API parameters only work AFTER surcharge rules are created
+in the Dashboard. Without dashboard rules, these fields are silently ignored.
+
+DISPLAY:
+--------
+Once configured, the payment page will show:
+- Order Amount: INR 500.00
+- Surcharge:    INR 10.00
+- Tax:          INR 1.80
+- Total:        INR 511.80

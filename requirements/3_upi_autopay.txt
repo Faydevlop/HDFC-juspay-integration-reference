@@ -1,0 +1,70 @@
+UPI AUTOPAY (MANDATES / SUBSCRIPTIONS) - DASHBOARD REQUIREMENTS
+================================================================
+Doc: https://docs.hdfcbank.juspay.in/docs/smartgateway-api-ref-basicauth/docs/mandates-subscriptions/introduction
+
+WHAT IT IS:
+-----------
+UPI Autopay allows merchants to set up recurring payments via UPI. Customers
+authorize a mandate (standing instruction) that allows the merchant to auto-debit
+their account periodically (daily, weekly, monthly, etc.) up to a max amount.
+
+USE CASES:
+----------
+- Insurance premiums
+- Loan EMIs
+- SIP investments
+- Bill payments
+- Subscription services (OTT, SaaS, etc.)
+
+PREREQUISITES:
+--------------
+1. Contact PA/PG Partner
+   - Ask your Payment Aggregator or Payment Gateway partner to ENABLE
+     UPI Autopay support for your merchant account
+   - This is the FIRST step - without this, nothing else will work
+
+2. Dashboard Configuration (CRITICAL):
+   a) Login to Juspay Dashboard
+   b) Go to: Payments > PG Control Centre
+   c) Select your gateway > Click "Edit Gateway Configuration"
+   d) Under "Payment Method Configurations" tab:
+      - Enable "UPI Collect" under Mandates/Subscriptions
+      - Enable "UPI Intent" under Mandates/Subscriptions
+   e) Under "Advanced Features" section:
+      - Set "Enable Emandate" to "True"
+   f) Repeat for ALL gateways that support UPI Autopay
+
+3. Webhook Configuration (MANDATORY):
+   Dashboard > Payments > Settings > Webhooks
+   Under "Notification Events":
+   - Enable "Notification Succeeded"
+   - Enable "Notification Failed"
+   Under "Mandate Events":
+   - Enable "Mandate Created"
+   - Enable "Mandate Revoked"
+   Click "Update Webhook Settings"
+
+IMPORTANT RULES:
+----------------
+- Max auto-debit without additional auth: INR 15,000
+- Transactions > INR 15,000 require UPI PIN authentication
+- Pre-Debit Notification (PDN) must be sent to customer 24 hours before auto-debit
+- Customer can revoke mandate anytime from their UPI app
+
+API PARAMETERS:
+---------------
+When creating a mandate order, pass these in the order creation:
+- mandate_auth: true
+- mandate.max_amount: maximum debit amount
+- mandate.start_date: mandate start date
+- mandate.end_date: mandate end date
+- mandate.frequency: DAILY / WEEKLY / FORTNIGHTLY / MONTHLY / BIMONTHLY / QUARTERLY / HALFYEARLY / YEARLY
+
+MANDATE LIFECYCLE:
+------------------
+1. Create Order with mandate_auth = true
+2. Customer authorizes via UPI app
+3. Mandate Created webhook received
+4. For each recurring payment: Call Execution API
+5. Customer receives Pre-Debit Notification
+6. Auto-debit happens on schedule

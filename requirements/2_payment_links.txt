@@ -1,0 +1,62 @@
+SMARTGATEWAY PAYMENT LINKS - DASHBOARD REQUIREMENTS
+=====================================================
+Doc: https://docs.hdfcbank.juspay.in/docs/smartgateway-api-ref-basicauth
+
+WHAT IT IS:
+-----------
+Payment Links allow merchants to generate shareable payment URLs that can be
+sent via SMS, email, WhatsApp, etc. Customers click the link to pay via
+UPI, Cards, Wallets, or NetBanking. No app/website integration needed.
+
+PREREQUISITES:
+--------------
+1. Merchant ID & Client ID
+   - Provided by HDFC bank team
+   - For Payment Links API, payment_page_client_id is required
+   - Sandbox: use "hdfcmaster" or your Merchant ID (SG4547)
+   - Production: use your Merchant ID
+
+2. API Key (Basic Auth)
+   - Generated from Dashboard > Payments > Settings > Security > API Keys
+
+3. Return URL
+   - Must be a valid HTTPS endpoint
+   - No query parameters or IP addresses allowed
+   - Should NOT redirect to another URL
+
+DASHBOARD CONFIGURATION STEPS:
+-------------------------------
+1. Generate API Key (if not done):
+   Dashboard > Payments > Settings > Security > API Keys
+
+2. Configure Return URL:
+   Dashboard > Payments > General Settings > Payment Return URL
+
+3. Payment Link Settings:
+   Dashboard > Advanced Payment Options:
+   - Set expiry duration (default: no expiry)
+   - Select Gateway Reference ID for routing
+   - Choose preferred gateway
+
+API DETAILS:
+------------
+Endpoint (Sandbox):  POST https://smartgateway.hdfcuat.bank.in/orders
+Endpoint (Prod):     POST https://smartgateway.hdfc.bank.in/orders
+
+MANDATORY HEADERS:
+- Authorization: Basic <Base64(API_KEY:)>
+- x-merchantid: <Merchant ID>
+- x-customerid: <unique customer identifier>
+- Content-Type: application/json (for Payment Links session API)
+
+MANDATORY PARAMETERS:
+- order_id: unique alphanumeric, max 21 chars
+- amount: stringified number, up to 2 decimal places (e.g. "100.00")
+- payment_page_client_id: "hdfcmaster" (sandbox) / Merchant ID (production)
+- customer_id: customer reference
+- customer_email: customer email
+- customer_phone: customer mobile number
+
+OPTIONAL PARAMETERS:
+- expiryInMins: payment link expiry time in minutes
+- description: order description

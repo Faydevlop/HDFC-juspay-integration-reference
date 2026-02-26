@@ -51,9 +51,11 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/juspay_te
 const paymentRoutes = require('./routes/payments');
 const webhookRoutes = require('./routes/webhooks');
 const surchargeRoutes = require('./routes/surcharge');
+const upiIntentRoutes = require('./routes/upi-intent');
 
 app.use('/api', express.json(), express.urlencoded({ extended: true }), paymentRoutes); // JSON and Form parsing for API
 app.use('/api/surcharge', express.json(), express.urlencoded({ extended: true }), surchargeRoutes); // Surcharge APIs
+app.use('/api/upi-intent', express.json(), express.urlencoded({ extended: true }), upiIntentRoutes); // UPI Intent APIs
 app.use('/webhook', webhookRoutes);            // Raw parsing handled inside webhookRoutes
 
 // Error Handling

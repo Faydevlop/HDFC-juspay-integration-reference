@@ -156,6 +156,108 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
+        /* UPI Intent specific styles */
+        .card.upi-intent {
+            border-left: 3px solid #4285f4;
+        }
+
+        .card.upi-intent:hover {
+            border-color: #4285f4;
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
+        }
+
+        .gpay-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            background: #1a73e8;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .gpay-btn:hover {
+            background: #1557b0;
+        }
+
+        .gpay-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .upi-status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .upi-status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .upi-status-badge.charged {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .upi-status-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .poll-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffc107;
+            margin-right: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .intent-uri-box {
+            margin-top: 6px;
+            padding: 6px 8px;
+            background: #f0f6ff;
+            border: 1px solid #d0e0ff;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+            word-break: break-all;
+            color: #333;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .intent-uri-box a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+        .intent-uri-box a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -303,6 +405,65 @@
         </div>
     </div>
 
+    <!-- UPI Intent -->
+    <h2>UPI Intent (Google Pay)</h2>
+    <div class="grid">
+        <div class="card upi-intent">
+            <h3>📱 Pay with Google Pay</h3>
+            <p>Creates order → initiates UPI Intent → auto-opens GPay</p>
+            <div class="input-row">
+                <label>Amount:</label>
+                <input id="upi-amount" value="10" type="number" />
+            </div>
+            <div class="input-row">
+                <label>Customer:</label>
+                <input id="upi-customer" value="cust_upi_001" />
+            </div>
+            <div style="text-align:right;margin-top:6px">
+                <button class="gpay-btn" id="gpay-pay-btn" onclick="upiIntentPay()">
+                    ▶ Pay via UPI Intent
+                </button>
+            </div>
+            <div id="upi-intent-result" style="margin-top:8px"></div>
+            <code>POST /api/upi-intent/create-order → /initiate-transaction</code>
+        </div>
+        <div class="card upi-intent">
+            <h3>🔄 Poll Order Status</h3>
+            <p>Check status of UPI Intent payment (auto-polls every 3s)</p>
+            <div class="input-row">
+                <label>Order ID:</label>
+                <input id="upi-poll-order-id" placeholder="upi_intent_..." />
+            </div>
+            <div style="display:flex;gap:6px;justify-content:flex-end">
+                <button onclick="upiPollStatus()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Check
+                    Once</button>
+                <button id="upi-auto-poll-btn" onclick="toggleAutoPoll()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #1a73e8;border-radius:4px;background:#e8f0fe;color:#1a73e8;">▶
+                    Auto-Poll</button>
+            </div>
+            <div id="upi-poll-result" style="margin-top:6px;font-size:12px"></div>
+            <code>GET /api/upi-intent/order-status/{orderId}</code>
+        </div>
+        <div class="card upi-intent">
+            <h3>💸 Refund</h3>
+            <p>Refund a completed UPI Intent payment</p>
+            <div class="input-row">
+                <label>Order ID:</label>
+                <input id="upi-refund-order-id" placeholder="upi_intent_..." />
+            </div>
+            <div class="input-row">
+                <label>Amount:</label>
+                <input id="upi-refund-amount" placeholder="(full refund if empty)" />
+            </div>
+            <div style="text-align:right">
+                <button onclick="upiRefund()"
+                    style="padding:4px 12px;font-size:12px;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#fff;">Refund</button>
+            </div>
+            <code>POST /api/upi-intent/refund</code>
+        </div>
+    </div>
+
     <!-- Console -->
     <div class="console-bar">
         <span>Console Output</span>
@@ -421,6 +582,178 @@
             if (confirm('Revoke this mandate? This cannot be undone.')) {
                 api('POST', `/api/mandates/${id}/revoke`);
             }
+        }
+
+        // ============================================================
+        // UPI INTENT FUNCTIONS
+        // ============================================================
+        let _autoPollTimer = null;
+        let _lastUpiOrderId = null;
+
+        async function upiIntentPay() {
+            const btn = document.getElementById('gpay-pay-btn');
+            const resultDiv = document.getElementById('upi-intent-result');
+            const amount = parseFloat(document.getElementById('upi-amount').value);
+            const customer_id = document.getElementById('upi-customer').value;
+
+            if (!amount || amount <= 0) return alert('Enter a valid amount');
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Creating order...';
+            resultDiv.innerHTML = '';
+
+            try {
+                // Step 1: Create order
+                const orderData = await api('POST', '/api/upi-intent/create-order', {
+                    amount,
+                    customer_id,
+                    customer_email: 'test@example.com',
+                    customer_phone: '9876543210'
+                });
+
+                if (!orderData?.order_id) {
+                    resultDiv.innerHTML = '<span class="log-err">❌ Order creation failed</span>';
+                    return;
+                }
+
+                const orderId = orderData.order_id;
+                _lastUpiOrderId = orderId;
+                document.getElementById('upi-poll-order-id').value = orderId;
+
+                btn.textContent = '⏳ Initiating UPI Intent...';
+
+                // Step 2: Initiate UPI Intent transaction
+                const txnData = await api('POST', '/api/upi-intent/initiate-transaction', {
+                    order_id: orderId
+                });
+
+                if (!txnData) {
+                    resultDiv.innerHTML = '<span class="log-err">❌ Transaction initiation failed</span>';
+                    return;
+                }
+
+                const intentUri = txnData.upi_intent_uri;
+                const authUrl = txnData.payment?.authentication?.url;
+
+                // Display result
+                let html = `<span class="upi-status-badge pending">⏳ ${txnData.status || 'PENDING_VBV'}</span>`;
+                html += `<div style="font-size:11px;color:#555;margin-top:4px">Order: <b>${orderId}</b></div>`;
+
+                if (intentUri) {
+                    html += `<div class="intent-uri-box"><a href="${intentUri}" target="_blank">${intentUri}</a></div>`;
+
+                    // Auto-open the UPI Intent URI (triggers GPay on mobile)
+                    log(`<span class="log-ok">📱 Opening UPI Intent → Google Pay...</span>`);
+                    window.location.href = intentUri;
+
+                    // Fallback: If on desktop, try authentication URL
+                    setTimeout(() => {
+                        if (authUrl) {
+                            log(`<span class="log-info">ℹ️  Desktop detected. Opening auth URL in new tab...</span>`);
+                            window.open(authUrl, '_blank');
+                        }
+                    }, 2000);
+                } else if (authUrl) {
+                    // No intent URI but auth URL available
+                    html += `<div style="font-size:11px;margin-top:4px"><a href="${authUrl}" target="_blank">Open Payment Page ↗</a></div>`;
+                    window.open(authUrl, '_blank');
+                }
+
+                resultDiv.innerHTML = html;
+
+                // Auto-start polling
+                startAutoPoll(orderId);
+
+            } catch (e) {
+                resultDiv.innerHTML = `<span class="log-err">❌ ${e.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '▶ Pay via UPI Intent';
+            }
+        }
+
+        async function upiPollStatus() {
+            const orderId = document.getElementById('upi-poll-order-id').value;
+            const resultDiv = document.getElementById('upi-poll-result');
+            if (!orderId) return alert('Enter a UPI Intent Order ID');
+
+            const data = await api('GET', `/api/upi-intent/order-status/${orderId}`);
+            if (!data) return;
+
+            const status = data.status;
+            let badgeClass = 'pending';
+            let icon = '⏳';
+            if (status === 'CHARGED') { badgeClass = 'charged'; icon = '✅'; }
+            else if (['AUTHENTICATION_FAILED', 'AUTHORIZATION_FAILED', 'JUSPAY_DECLINED'].includes(status)) { badgeClass = 'failed'; icon = '❌'; }
+
+            resultDiv.innerHTML = `<span class="upi-status-badge ${badgeClass}">${icon} ${status}</span>`
+                + (data.txn_id ? `<span style="font-size:11px;color:#666;margin-left:6px">txn: ${data.txn_id}</span>` : '');
+
+            // Stop auto-poll if terminal status
+            if (status === 'CHARGED' || ['AUTHENTICATION_FAILED', 'AUTHORIZATION_FAILED', 'JUSPAY_DECLINED'].includes(status)) {
+                stopAutoPoll();
+                if (status === 'CHARGED') {
+                    document.getElementById('upi-refund-order-id').value = orderId;
+                    log(`<span class="log-ok">✅ UPI Intent payment CHARGED for ${orderId}</span>`);
+                }
+            }
+
+            return status;
+        }
+
+        function startAutoPoll(orderId) {
+            stopAutoPoll(); // clear any existing
+            if (orderId) document.getElementById('upi-poll-order-id').value = orderId;
+
+            const btn = document.getElementById('upi-auto-poll-btn');
+            btn.textContent = '⏹ Stop Polling';
+            btn.style.background = '#fce8e6';
+            btn.style.color = '#c5221f';
+            btn.style.borderColor = '#c5221f';
+
+            const resultDiv = document.getElementById('upi-poll-result');
+            resultDiv.innerHTML = '<span class="poll-indicator"></span> Auto-polling every 3s...';
+
+            _autoPollTimer = setInterval(async () => {
+                const status = await upiPollStatus();
+                if (status && status !== 'PENDING_VBV' && status !== 'CREATED' && status !== 'NEW') {
+                    stopAutoPoll();
+                }
+            }, 3000);
+        }
+
+        function stopAutoPoll() {
+            if (_autoPollTimer) {
+                clearInterval(_autoPollTimer);
+                _autoPollTimer = null;
+            }
+            const btn = document.getElementById('upi-auto-poll-btn');
+            btn.textContent = '▶ Auto-Poll';
+            btn.style.background = '#e8f0fe';
+            btn.style.color = '#1a73e8';
+            btn.style.borderColor = '#1a73e8';
+        }
+
+        function toggleAutoPoll() {
+            if (_autoPollTimer) {
+                stopAutoPoll();
+            } else {
+                const orderId = document.getElementById('upi-poll-order-id').value;
+                if (!orderId) return alert('Enter a UPI Intent Order ID first');
+                startAutoPoll(orderId);
+            }
+        }
+
+        async function upiRefund() {
+            const order_id = document.getElementById('upi-refund-order-id').value;
+            const amountStr = document.getElementById('upi-refund-amount').value;
+            if (!order_id) return alert('Enter a UPI Intent Order ID');
+
+            const body = { order_id };
+            if (amountStr) body.amount = parseFloat(amountStr);
+
+            if (!confirm(`Refund order ${order_id}?`)) return;
+            await api('POST', '/api/upi-intent/refund', body);
         }
     </script>
 </body>

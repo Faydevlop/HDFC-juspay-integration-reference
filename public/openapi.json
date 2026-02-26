@@ -34,6 +34,10 @@
         {
             "name": "Surcharge (Convenience Fee)",
             "description": "Add convenience fees / surcharges on top of order amount — requires Dashboard configuration"
+        },
+        {
+            "name": "UPI Intent",
+            "description": "UPI Intent payments — app-to-app push payments via UPI Intent URI / Dynamic QR code"
         }
     ],
     "paths": {
@@ -913,6 +917,288 @@
                 }
             }
         },
+        "/api/upi-intent/create-order": {
+            "post": {
+                "tags": [
+                    "UPI Intent"
+                ],
+                "summary": "Create Order for UPI Intent",
+                "description": "**Step 1**: Create an order for UPI Intent payment.\n\nThis creates a standard Juspay order. The returned `order_id` is then used in Step 2 to initiate the UPI Intent transaction.\n\n**Ref**: [UPI Intent](https://docs.hdfcbank.juspay.in/docs/smartgateway-tranportal-integration/docs/tranportal-integration/upi-intent)\n\n**Juspay endpoint**: `POST /order/create`",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "amount"
+                                ],
+                                "properties": {
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "Payment amount",
+                                        "example": 100
+                                    },
+                                    "currency": {
+                                        "type": "string",
+                                        "default": "INR"
+                                    },
+                                    "customer_id": {
+                                        "type": "string",
+                                        "example": "cust_upi_001"
+                                    },
+                                    "customer_email": {
+                                        "type": "string",
+                                        "example": "buyer@example.com"
+                                    },
+                                    "customer_phone": {
+                                        "type": "string",
+                                        "example": "9876543210"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "basic": {
+                                    "summary": "Basic UPI Intent Order — ₹100",
+                                    "value": {
+                                        "amount": 100,
+                                        "customer_id": "cust_upi_001",
+                                        "customer_email": "buyer@example.com",
+                                        "customer_phone": "9876543210"
+                                    }
+                                },
+                                "high_value": {
+                                    "summary": "High-Value UPI Intent — ₹5,000",
+                                    "value": {
+                                        "amount": 5000,
+                                        "customer_id": "cust_upi_002",
+                                        "customer_email": "premium@example.com",
+                                        "customer_phone": "9876543210"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Order created successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "CREATED",
+                                    "order_id": "upi_intent_1772000476555",
+                                    "payment_links": {
+                                        "web": "https://smartgateway.hdfcuat.bank.in/payment-page/order/ordeh_upi123"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing amount"
+                    },
+                    "500": {
+                        "description": "Order creation failed"
+                    }
+                }
+            }
+        },
+        "/api/upi-intent/initiate-transaction": {
+            "post": {
+                "tags": [
+                    "UPI Intent"
+                ],
+                "summary": "Initiate UPI Intent Transaction",
+                "description": "**Step 2**: Initiate the UPI Intent transaction for an existing order.\n\nCalls Juspay's `/txns` endpoint with `payment_method=UPI_PAY` and `sdk_params=true`.\n\nThe response contains `sdk_params` with fields to construct the **UPI Intent URI**:\n```\nupi://pay?tr=...&tid=...&pa=...&mc=...&pn=...&am=...&cu=INR&tn=...\n```\n\n### Usage\n- **Mobile App**: Use the `upi_intent_uri` to invoke UPI apps via Android Intent / iOS URL scheme\n- **Mobile Web**: Embed the URI as an anchor tag — browser shows available UPI apps\n- **Desktop Web**: Generate a QR code from the URI using libraries like [qrcode](https://www.npmjs.com/package/qrcode)\n\n### Important Notes\n- Spaces in URI are replaced by `%20` (URI is URL-encoded)\n- Generate the intent URI dynamically from sdk_params — do NOT hardcode keys/values\n- Status will be `PENDING_VBV` — poll order status for final result\n\n**Ref**: [UPI Intent](https://docs.hdfcbank.juspay.in/docs/smartgateway-tranportal-integration/docs/tranportal-integration/upi-intent)\n\n**Juspay endpoint**: `POST /txns`",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UPIIntentTransactionRequest"
+                            },
+                            "examples": {
+                                "standard": {
+                                    "summary": "Standard UPI Intent",
+                                    "value": {
+                                        "order_id": "upi_intent_1772000476555"
+                                    }
+                                },
+                                "with_options": {
+                                    "summary": "With redirect and format options",
+                                    "value": {
+                                        "order_id": "upi_intent_1772000476555",
+                                        "redirect_after_payment": true,
+                                        "format": "json"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transaction initiated — sdk_params returned for intent URI construction",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "status": "PENDING_VBV",
+                                    "txn_uuid": "mozpxhGZuNSEhxbKgim",
+                                    "txn_id": "testhdfc1-TPVTEST23-1",
+                                    "order_id": "upi_intent_1772000476555",
+                                    "payment": {
+                                        "sdk_params": {
+                                            "tr": "testhdfc1-TPVTEST23-1",
+                                            "tid": "mozpxhGZuNSEhxbKgim",
+                                            "merchant_vpa": "jphdfc03@hdfcbank",
+                                            "mcc": "6012",
+                                            "merchant_name": "TEST HDFC SECURITIES",
+                                            "amount": "100.00",
+                                            "currency": "INR",
+                                            "pgIntentUrl": "upi://pay?ver=01&mode=04&tr=testhdfc1-TPVTEST23-1&pa=jphdfc03@hdfcbank&mc=6012&pn=TEST%20HDFC%20SECURITIES&am=100.00&cu=INR"
+                                        },
+                                        "authentication": {
+                                            "method": "GET",
+                                            "url": "https://smartgatewayuat.hdfcbank.com/v2/pay/start/..."
+                                        }
+                                    },
+                                    "upi_intent_uri": "upi://pay?ver=01&mode=04&tr=testhdfc1-TPVTEST23-1&pa=jphdfc03@hdfcbank&mc=6012&pn=TEST%20HDFC%20SECURITIES&am=100.00&cu=INR",
+                                    "next_step": "Use the upi_intent_uri to open UPI app on mobile, or generate QR code for web. Poll /api/upi-intent/order-status/:orderId for payment status."
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing order_id"
+                    },
+                    "500": {
+                        "description": "Transaction initiation failed"
+                    }
+                }
+            }
+        },
+        "/api/upi-intent/order-status/{orderId}": {
+            "get": {
+                "tags": [
+                    "UPI Intent"
+                ],
+                "summary": "Poll UPI Intent Order Status",
+                "description": "**Step 3**: Poll order status after UPI Intent payment initiation.\n\nUnlike UPI Collect (where the response redirects to return_url), UPI Intent is a **push payment** — the customer pays via UPI app and only a server callback is posted. The merchant must continuously poll this endpoint to check payment status.\n\n### Statuses\n| Status | Meaning |\n|---|---|\n| `PENDING_VBV` | Payment pending — customer hasn't completed yet |\n| `CHARGED` | Payment successful ✅ |\n| `AUTHENTICATION_FAILED` | Payment failed ❌ |\n| `AUTHORIZATION_FAILED` | Payment failed ❌ |\n| `JUSPAY_DECLINED` | Payment declined ❌ |\n\n**Juspay endpoint**: `GET /orders/{order_id}`",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "example": "upi_intent_1772000476555"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order status",
+                        "content": {
+                            "application/json": {
+                                "examples": {
+                                    "pending": {
+                                        "summary": "Payment Pending",
+                                        "value": {
+                                            "status": "PENDING_VBV",
+                                            "order_id": "upi_intent_1772000476555",
+                                            "amount": 100.0
+                                        }
+                                    },
+                                    "charged": {
+                                        "summary": "Payment Successful",
+                                        "value": {
+                                            "status": "CHARGED",
+                                            "order_id": "upi_intent_1772000476555",
+                                            "amount": 100.0,
+                                            "txn_id": "testhdfc1-upi_intent_1772000476555-1",
+                                            "upi": {
+                                                "payer_vpa": "customer@upi"
+                                            }
+                                        }
+                                    },
+                                    "failed": {
+                                        "summary": "Payment Failed",
+                                        "value": {
+                                            "status": "AUTHENTICATION_FAILED",
+                                            "order_id": "upi_intent_1772000476555",
+                                            "amount": 100.0
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Status check failed"
+                    }
+                }
+            }
+        },
+        "/api/upi-intent/refund": {
+            "post": {
+                "tags": [
+                    "UPI Intent"
+                ],
+                "summary": "Refund UPI Intent Payment",
+                "description": "Refund a completed UPI Intent payment. Order must be in `CHARGED` status.\n\nIf no `amount` is provided, a full refund is initiated.\n\n**Juspay endpoint**: `POST /orders/{order_id}/refunds`",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "order_id"
+                                ],
+                                "properties": {
+                                    "order_id": {
+                                        "type": "string",
+                                        "description": "The order ID to refund",
+                                        "example": "upi_intent_1772000476555"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "Partial refund amount (optional — full refund if not provided)"
+                                    }
+                                }
+                            },
+                            "examples": {
+                                "full_refund": {
+                                    "summary": "Full Refund",
+                                    "value": {
+                                        "order_id": "upi_intent_1772000476555"
+                                    }
+                                },
+                                "partial_refund": {
+                                    "summary": "Partial Refund — ₹50",
+                                    "value": {
+                                        "order_id": "upi_intent_1772000476555",
+                                        "amount": 50
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Refund initiated"
+                    },
+                    "400": {
+                        "description": "Missing order_id or order not in CHARGED status"
+                    },
+                    "500": {
+                        "description": "Refund failed"
+                    }
+                }
+            }
+        },
         "/webhook/juspay": {
             "post": {
                 "tags": [
@@ -1227,6 +1513,29 @@
                     "customer_id": {
                         "type": "string",
                         "example": "cust_001"
+                    }
+                }
+            },
+            "UPIIntentTransactionRequest": {
+                "type": "object",
+                "required": [
+                    "order_id"
+                ],
+                "properties": {
+                    "order_id": {
+                        "type": "string",
+                        "description": "Order ID from Step 1 (create-order)",
+                        "example": "upi_intent_1772000476555"
+                    },
+                    "redirect_after_payment": {
+                        "type": "boolean",
+                        "description": "If true, redirects user to return_url after payment. Recommended: true",
+                        "default": true
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "Response format. Set to 'json' for JSON response, otherwise HTTP 302 redirect.",
+                        "default": "json"
                     }
                 }
             }
